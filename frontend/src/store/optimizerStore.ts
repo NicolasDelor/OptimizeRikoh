@@ -23,6 +23,8 @@ export function useOptimizerStore() {
       stats: {},
       requiredSets: [],
       forbiddenSets: [],
+
+      speedOrder: 1,
     };
 
     setMonsters((prev) => [...prev, monster]);

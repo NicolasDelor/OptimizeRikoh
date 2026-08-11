@@ -56,8 +56,15 @@ export default function TeamOptimizerPage() {
     }
   };
 
-  console.log("MONSTERS", store.monsters);
-  console.log("CONFIGS", store.configs);
+  const sortedMonsters = [...store.monsters].sort((a, b) => {
+    const orderA =
+      store.configs[a.id]?.speedOrder ?? 9999;
+
+    const orderB =
+      store.configs[b.id]?.speedOrder ?? 9999;
+
+    return orderA - orderB;
+  });
 
   return (
     <div className="page">
@@ -83,7 +90,6 @@ export default function TeamOptimizerPage() {
           </button>
 
           <button>Save</button>
-
           <button>Optimize Team</button>
         </div>
       </header>
@@ -122,11 +128,8 @@ export default function TeamOptimizerPage() {
         </div>
 
         <div className="main">
-          {store.monsters.map((monster) => {
+          {sortedMonsters.map((monster) => {
             const config = store.configs[monster.id];
-
-            console.log("CARD", monster);
-            console.log("CARD CONFIG", config);
 
             if (!config) {
               return null;
@@ -137,7 +140,17 @@ export default function TeamOptimizerPage() {
                 key={monster.id}
                 monster={monster}
                 config={config}
-                onDelete={() => store.removeMonster(monster.id)}
+                onDelete={() =>
+                  store.removeMonster(monster.id)
+                }
+                onSpeedOrderChange={(speedOrder) =>
+                  store.updateConfig(
+                    monster.id,
+                    {
+                      speedOrder,
+                    }
+                  )
+                }
               />
             );
           })}
@@ -148,4 +161,3 @@ export default function TeamOptimizerPage() {
     </div>
   );
 }
-

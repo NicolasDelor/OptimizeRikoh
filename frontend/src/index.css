@@ -304,3 +304,32 @@ input[type="number"] {
     font-size: 11px;
   }
 }
+
+.move-order-container {
+  margin-bottom: 12px;
+}
+
+.move-order-label {
+  display: block;
+  margin-bottom: 4px;
+
+  color: #ff9d00;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.move-order-input {
+  background: #182238;
+  border: 1px solid #2f3c57;
+  color: white;
+
+  height: 30px;
+  width: 60px;
+
+  text-align: center;
+}
+
+.move-order-input:focus {
+  outline: none;
+  border-color: #ff9d00;
+}

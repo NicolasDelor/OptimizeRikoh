@@ -7,12 +7,16 @@ interface Props {
   };
   config?: any;
   onDelete?: () => void;
+  onSpeedOrderChange?: (
+    speedOrder: number
+  ) => void;
 }
 
 export default function TeamMonsterCard({
   monster,
   config,
   onDelete,
+  onSpeedOrderChange,
 }: Props) {
   if (!monster || !config) {
     return null;
@@ -68,6 +72,24 @@ export default function TeamMonsterCard({
         </div>
       </div>
 
+      <div className="move-order-container">
+        <label className="move-order-label">
+          Move Order
+        </label>
+
+        <input
+          className="move-order-input"
+          type="text"
+          inputMode="numeric"
+          value={config.speedOrder ?? ""}
+          onChange={(e) =>
+            onSpeedOrderChange?.(
+              Number(e.target.value) || 0
+            )
+          }
+        />
+      </div>
+
       <div className="monster-stats">
         <div className="stats-header">
           <div>Stat</div>
@@ -96,7 +118,8 @@ export default function TeamMonsterCard({
 
             <input
               className="stat-input"
-              type="number"
+              type="text"
+              inputMode="numeric"
               value={
                 values[
                   `${stat.key}Min` as keyof typeof values
@@ -112,7 +135,8 @@ export default function TeamMonsterCard({
 
             <input
               className="stat-input"
-              type="number"
+              type="text"
+              inputMode="numeric"
               value={
                 values[
                   `${stat.key}Max` as keyof typeof values
