@@ -21,3 +21,7 @@ dist/
 # OS
 Thumbs.db
 .DS_Store
+
+# SWEX exports
+2
+Arikoh-*.json

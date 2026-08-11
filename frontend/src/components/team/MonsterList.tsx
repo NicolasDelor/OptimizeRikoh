@@ -1,14 +1,14 @@
 import type { Monster } from "../../types/Monster";
 
 interface Props {
-  monsters: Monster[];
+  monsters?: Monster[];
   selectedMonsterId: number | null;
   onSelect: (id: number) => void;
   onDelete: (id: number) => void;
 }
 
 export default function MonsterList({
-  monsters,
+  monsters = [],
   selectedMonsterId,
   onSelect,
   onDelete,

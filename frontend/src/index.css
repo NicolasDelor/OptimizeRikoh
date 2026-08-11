@@ -30,30 +30,30 @@ body {
 .content {
   margin-top: 16px;
   display: flex;
-  gap: 16px;
+  gap: 8px;
+  align-items: flex-start;
 }
 
 .sidebar {
   width: 300px;
+  flex-shrink: 0;
 }
 
 .main {
   flex: 1;
   display: flex;
-  flex-direction: column;
-  gap: 16px;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-content: flex-start;
 }
 
 .card {
+  position: relative;
   background: #1f2937;
   border-radius: 12px;
-  padding: 16px;
-}
-
-input {
+  padding: 12px;
   width: 100%;
-  padding: 10px;
-  margin-bottom: 8px;
+  max-width: 300px;
 }
 
 button {
@@ -61,27 +61,179 @@ button {
   cursor: pointer;
 }
 
-.monster-item {
-  display: flex;
-  justify-content: space-between;
-  padding: 10px;
-  border-radius: 8px;
-  cursor: pointer;
-}
-
-.monster-item.selected {
-  background: #374151;
-}
-
-.add-monster {
-  margin-top: 12px;
-}
-
 .results-placeholder {
   min-height: 100px;
   display: flex;
   align-items: center;
 }
+
+/* SEARCH */
+
+.monster-search-input {
+  width: 100%;
+  background: #182238;
+  border: 1px solid #2f3c57;
+  color: white;
+  height: 30px;
+  padding: 0 8px;
+  margin-bottom: 8px;
+  font-size: 12px;
+}
+
+.monster-search-input:focus {
+  outline: none;
+  border-color: #ff9d00;
+  box-shadow: 0 0 0 1px #ff9d00;
+}
+
+.monster-search-input::placeholder {
+  color: #8b95a7;
+}
+
+.monster-list-container {
+  max-height: 250px;
+  overflow-y: auto;
+  margin-bottom: 16px;
+  border: 1px solid #374151;
+  border-radius: 8px;
+}
+
+.monster-list-item {
+  padding: 10px;
+  cursor: pointer;
+  border-bottom: 1px solid #1f2937;
+}
+
+.monster-list-item:hover {
+  background: #243047;
+}
+
+.monster-list-item:last-child {
+  border-bottom: none;
+}
+
+/* MONSTER CARD */
+
+.monster-card-actions {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+}
+
+.monster-delete-button {
+  all: unset;
+  cursor: pointer;
+  color: white;
+  font-size: 18px;
+  line-height: 1;
+}
+
+.monster-delete-button:hover {
+  color: #ef4444;
+}
+
+.monster-card-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.monster-image-placeholder {
+  width: 80px;
+  height: 80px;
+  background: #ffffff;
+  border: 2px solid #2e3b52;
+  border-radius: 4px;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.monster-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.monster-name {
+  color: #ff9d00;
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.monster-stats {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.stats-header {
+  display: grid;
+  grid-template-columns: 35px 45px 55px 40px 40px;
+  gap: 4px;
+  margin-bottom: 6px;
+  color: #ff9d00;
+  font-weight: 700;
+  font-size: 13px;
+}
+
+.stat-row {
+  display: grid;
+  grid-template-columns: 35px 45px 55px 40px 40px;
+  gap: 4px;
+  align-items: center;
+}
+
+.stat-label {
+  color: #d1d5db;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.stat-value {
+  color: white;
+  text-align: center;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.stat-input {
+  background: #182238;
+  border: 1px solid #2f3c57;
+  color: white;
+  width: 40px;
+  min-width: 40px;
+  height: 28px;
+  padding: 0 2px;
+  margin-bottom: 0;
+  text-align: center;
+  font-size: 12px;
+}
+
+.stat-input:focus {
+  outline: none;
+  border-color: #ff9d00;
+  box-shadow: 0 0 0 1px #ff9d00;
+}
+
+.stat-input::placeholder {
+  color: #8b95a7;
+}
+
+/* REMOVE NUMBER SPINNERS */
+
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+input[type="number"] {
+  appearance: textfield;
+  -moz-appearance: textfield;
+}
+
+/* TABLET */
 
 @media (max-width: 1024px) {
   .content {
@@ -91,19 +243,64 @@ button {
   .sidebar {
     width: 100%;
   }
+
+  .card {
+    max-width: 300px;
+  }
 }
+
+/* MOBILE */
 
 @media (max-width: 768px) {
   .page {
-    padding: 10px;
+    padding: 8px;
+  }
+
+  .header-actions {
+    width: 100%;
+    flex-direction: column;
   }
 
   button {
     width: 100%;
   }
 
-  .header-actions {
-    width: 100%;
-    flex-direction: column;
+  .main {
+    gap: 8px;
+  }
+
+  .card {
+    max-width: 100%;
+  }
+
+  .monster-image-placeholder {
+    width: 60px;
+    height: 60px;
+  }
+
+  .monster-name {
+    font-size: 16px;
+  }
+
+  .stats-header {
+    grid-template-columns: 30px 35px 45px 40px 40px;
+    gap: 2px;
+    font-size: 11px;
+  }
+
+  .stat-row {
+    grid-template-columns: 30px 35px 45px 40px 40px;
+    gap: 2px;
+  }
+
+  .stat-label,
+  .stat-value {
+    font-size: 11px;
+  }
+
+  .stat-input {
+    width: 40px;
+    height: 24px;
+    font-size: 11px;
   }
 }

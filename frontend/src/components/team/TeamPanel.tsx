@@ -1,5 +1,4 @@
-import { useState } from "react";
-import MonsterList from "./MonsterList";
+import { useMemo, useState } from "react";
 import type { Monster } from "../../types/Monster";
 
 interface Props {
@@ -8,38 +7,49 @@ interface Props {
   onSelect: (id: number) => void;
   onDelete: (id: number) => void;
   onAdd: (name: string) => void;
+  availableMonsters?: string[];
 }
 
-export default function TeamPanel(props: Props) {
-  const [monsterName, setMonsterName] = useState("");
+export default function TeamPanel({
+  onAdd,
+  availableMonsters = [],
+}: Props) {
+  const [search, setSearch] = useState("");
+
+  const filteredMonsters = useMemo(() => {
+    if (!search.trim()) {
+      return availableMonsters.slice(0, 50);
+    }
+
+    return availableMonsters
+      .filter((monster) =>
+        monster.toLowerCase().includes(search.toLowerCase())
+      )
+      .slice(0, 50);
+  }, [search, availableMonsters]);
 
   return (
     <div className="card">
       <h2>Team</h2>
 
-      <MonsterList
-        monsters={props.monsters}
-        selectedMonsterId={props.selectedMonsterId}
-        onSelect={props.onSelect}
-        onDelete={props.onDelete}
+      <input
+        className="monster-search-input"
+        type="text"
+        placeholder="Rechercher un monstre..."
+        value={search}
+        onChange={(e) => setSearch(e.target.value)}
       />
 
-      <div className="add-monster">
-        <input
-          value={monsterName}
-          onChange={(e) => setMonsterName(e.target.value)}
-          placeholder="Nom du monstre"
-        />
-
-        <button
-          onClick={() => {
-            if (!monsterName.trim()) return;
-            props.onAdd(monsterName.trim());
-            setMonsterName("");
-          }}
-        >
-          Ajouter
-        </button>
+      <div className="monster-list-container">
+        {filteredMonsters.map((monsterId, index) => (
+          <div
+            key={`${monsterId}-${index}`}
+            className="monster-list-item"
+            onClick={() => onAdd(monsterId)}
+          >
+            {monsterId}
+          </div>
+        ))}
       </div>
     </div>
   );
