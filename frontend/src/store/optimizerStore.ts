@@ -15,6 +15,12 @@ export function useOptimizerStore() {
   const addMonster = (monsterData: string) => {
     const swexMonster = JSON.parse(monsterData);
 
+    console.log(
+      "ADD MONSTER",
+      swexMonster.name,
+      swexMonster.unitId
+    );
+
     const id = Date.now();
 
     const monster: Monster = {

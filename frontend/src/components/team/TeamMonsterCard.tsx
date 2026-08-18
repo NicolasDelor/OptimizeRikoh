@@ -5,7 +5,6 @@ import {
   getSetBonus,
   getStatValue,
 } from "../../services/statCalculator";
-import { useOptimizerStore } from "../../store/optimizerStore";
 import { getRunesForMode } from "../../services/runeModeService";
 
 interface Props {
@@ -13,6 +12,9 @@ interface Props {
   config?: any;
   onDelete?: () => void;
   onSpeedOrderChange?: (speedOrder: number) => void;
+
+  importMode: "NORMAL" | "RTA" | "SIEGE";
+  swexData: any;
 }
 
 export default function TeamMonsterCard({
@@ -20,6 +22,8 @@ export default function TeamMonsterCard({
   config,
   onDelete,
   onSpeedOrderChange,
+  importMode,
+  swexData,
 }: Props) {
   if (!monster || !config) {
     return null;
@@ -44,9 +48,17 @@ export default function TeamMonsterCard({
     resMax: "",
   });
 
-  const store = useOptimizerStore();
+    console.log(
+      "IMPORT MODE",
+      importMode
+    );
+    ``
 
-  const runes = getRunesForMode(monster, store.importMode, store.swexData);
+  const runes = getRunesForMode(
+    monster,
+    importMode,
+    swexData
+  );
 
   const getCurrentSpd = () =>
     getRuneBonus(runes, 8) + getSetBonus(runes, "spd");

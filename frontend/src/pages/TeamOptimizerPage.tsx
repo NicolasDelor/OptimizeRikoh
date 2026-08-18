@@ -120,6 +120,7 @@ export default function TeamOptimizerPage() {
     return orderA - orderB;
   });
 
+
   return (
     <div className="page">
       <header className="header">
@@ -226,6 +227,8 @@ export default function TeamOptimizerPage() {
                 key={monster.id}
                 monster={monster}
                 config={config}
+                importMode={store.importMode}
+                swexData={store.swexData}
                 onDelete={() => store.removeMonster(monster.id)}
                 onSpeedOrderChange={(speedOrder) =>
                   store.updateConfig(monster.id, {
