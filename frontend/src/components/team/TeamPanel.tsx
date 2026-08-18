@@ -7,10 +7,12 @@ interface Props {
   onSelect: (id: number) => void;
   onDelete: (id: number) => void;
   onAdd: (name: string) => void;
-  availableMonsters?: string[];
+  availableMonsters?: any[];
 }
 
 export default function TeamPanel({
+  monsters,
+  onDelete,
   onAdd,
   availableMonsters = [],
 }: Props) {
@@ -23,7 +25,9 @@ export default function TeamPanel({
 
     return availableMonsters
       .filter((monster) =>
-        monster.toLowerCase().includes(search.toLowerCase())
+        monster.name
+          .toLowerCase()
+          .includes(search.toLowerCase())
       )
       .slice(0, 50);
   }, [search, availableMonsters]);
@@ -37,19 +41,57 @@ export default function TeamPanel({
         type="text"
         placeholder="Rechercher un monstre..."
         value={search}
-        onChange={(e) => setSearch(e.target.value)}
+        onChange={(e) =>
+          setSearch(e.target.value)
+        }
       />
 
       <div className="monster-list-container">
-        {filteredMonsters.map((monsterId, index) => (
-          <div
-            key={`${monsterId}-${index}`}
-            className="monster-list-item"
-            onClick={() => onAdd(monsterId)}
-          >
-            {monsterId}
-          </div>
-        ))}
+        {filteredMonsters.map(
+          (monster, index) => {
+            const selectedMonster =
+              monsters.find(
+                (m) =>
+                  m.unitId ===
+                  monster.unitId
+              );
+
+            return (
+              <div
+                key={`${monster.unitId}-${index}`}
+                className={`monster-list-item ${
+                  selectedMonster
+                    ? "selected"
+                    : "unselected"
+                }`}
+                title={monster.name}
+                onClick={() => {
+                  if (selectedMonster) {
+                    onDelete(
+                      selectedMonster.id
+                    );
+                  } else {
+                    onAdd(
+                      JSON.stringify(
+                        monster
+                      )
+                    );
+                  }
+                }}
+              >
+                <div className="monster-grid-item">
+                                {monster.imageUrl && (
+                                  <img
+                                    src={monster.imageUrl}
+                                    alt={monster.name}
+                                    className="monster-grid-image"
+                                  />
+                                )}
+                            </div>
+              </div>
+            );
+          }
+        )}
       </div>
     </div>
   );

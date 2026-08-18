@@ -10,6 +10,9 @@ export function useOptimizerStore() {
 
   const [configs, setConfigs] = useState<Record<number, MonsterConfig>>({});
 
+  const [swexData, setSwexData] =
+    useState<any>(null);
+
   const addMonster = (monsterData: string) => {
     const swexMonster = JSON.parse(monsterData);
 
@@ -18,7 +21,11 @@ export function useOptimizerStore() {
     const monster: Monster = {
       id,
 
-      name: String(swexMonster.id),
+      unitId: swexMonster.unitId,
+
+      name: swexMonster.name,
+
+      imageUrl: swexMonster.imageUrl,
 
       hp: swexMonster.hp,
       atk: swexMonster.atk,
@@ -82,14 +89,21 @@ export function useOptimizerStore() {
   };
 
   return {
-    monsters,
-    configs,
-    selectedMonsterId,
-    addMonster,
-    removeMonster,
-    updateConfig,
-    setSelectedMonsterId,
-    importMode,
-    setImportMode,
-  };
+       monsters,
+       configs,
+       selectedMonsterId,
+
+       swexData,
+
+       addMonster,
+       removeMonster,
+       updateConfig,
+
+       setSelectedMonsterId,
+
+       importMode,
+       setImportMode,
+
+       setSwexData,
+     };
 }

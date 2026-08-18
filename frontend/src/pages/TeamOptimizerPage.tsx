@@ -1,10 +1,22 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import TeamPanel from "../components/team/TeamPanel";
 import ResultsPanel from "../components/results/ResultsPanel";
 import TeamMonsterCard from "../components/team/TeamMonsterCard";
 import { useOptimizerStore } from "../store/optimizerStore";
+import { loadSwarfarmMonsters } from "../services/swarfarmService";
 
 export default function TeamOptimizerPage() {
+
+    const [swarfarmMonsters, setSwarfarmMonsters] =
+      useState<Record<number, any>>({});
+
+      useEffect(() => {
+        loadSwarfarmMonsters().then(
+          setSwarfarmMonsters
+        );
+      }, []);
+
+
 
 
 
@@ -17,7 +29,8 @@ export default function TeamOptimizerPage() {
     artifacts: number;
   } | null>(null);
 
-  const [availableMonsters, setAvailableMonsters] = useState<string[]>([]);
+  const [availableMonsters, setAvailableMonsters] =
+    useState<any[]>([]);
 
   const handleImportSwex = async (
     event: React.ChangeEvent<HTMLInputElement>
@@ -32,25 +45,68 @@ export default function TeamOptimizerPage() {
       const content = await file.text();
       const data = JSON.parse(content);
 
+      store.setSwexData(data);
+
+
 
       const monsters =
-        data.unit_list?.map((unit: any) => ({
-          id: unit.unit_master_id,
-          hp: unit.con,
-          atk: unit.atk,
-          def: unit.def,
-          spd: unit.spd,
-          cr: unit.critical_rate,
-          cd: unit.critical_damage,
-          acc: unit.accuracy,
-          res: unit.resist,
-        })) ?? [];
+        data.unit_list?.map((unit: any) => {
+                              const swarfarmMonster =
+                                swarfarmMonsters[
+                                  unit.unit_master_id
+                                ];
 
-      setAvailableMonsters(
-        monsters.map(
-          (monster) => JSON.stringify(monster)
-        )
-      );
+                            const sameMonsters =
+                              data.unit_list.filter(
+                                (u: any) =>
+                                  u.unit_master_id ===
+                                  unit.unit_master_id
+                              );
+
+                            const duplicateNumber =
+                              sameMonsters.findIndex(
+                                (u: any) =>
+                                  u.unit_id === unit.unit_id
+                              ) + 1;
+
+                            const monsterName =
+                              swarfarmMonster?.name ??
+                              String(unit.unit_master_id);
+
+                            return {
+                              id: unit.unit_master_id,
+
+                              unitId: unit.unit_id,
+
+                              duplicateNumber,
+
+                              name:
+                                duplicateNumber === 1
+                                  ? monsterName
+                                  : `${monsterName} ${duplicateNumber}`,
+
+                                name:
+                                  duplicateNumber === 1
+                                    ? monsterName
+                                    : `${monsterName} ${duplicateNumber}`,
+
+                                imageUrl: swarfarmMonster
+                                  ? `https://swarfarm.com/static/herders/images/monsters/${swarfarmMonster.image_filename}`
+                                  : undefined,
+
+                                hp: unit.con,
+                                atk: unit.atk,
+                                def: unit.def,
+                                spd: unit.spd,
+
+                                cr: unit.critical_rate,
+                                cd: unit.critical_damage,
+                                acc: unit.accuracy,
+                                res: unit.resist,
+                              };
+                            }) ?? [];
+
+      setAvailableMonsters(monsters);
 
       setImportStatus({
         fileName: file.name,
@@ -60,16 +116,17 @@ export default function TeamOptimizerPage() {
       });
 
       console.log("SWEX IMPORT", data);
-    } catch (error) {
-      console.error(error);
+    }catch (error) {
+       console.error("IMPORT ERROR", error);
 
-      setImportStatus({
-        fileName: file.name,
-        monsters: 0,
-        runes: 0,
-        artifacts: 0,
-      });
-    }
+       setImportStatus({
+         fileName: file.name,
+         monsters: 0,
+         runes: 0,
+         artifacts: 0,
+       });
+     }
+     ``
   };
 
   const sortedMonsters = [...store.monsters].sort((a, b) => {

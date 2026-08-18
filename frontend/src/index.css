@@ -91,26 +91,40 @@ button {
 }
 
 .monster-list-container {
-  max-height: 250px;
+  display: grid;
+
+  grid-template-columns: repeat(
+    auto-fill,
+    minmax(56px, 56px)
+  );
+
+  justify-content: start;
+
+  gap: 6px;
+
+  max-height: 320px;
+
   overflow-y: auto;
-  margin-bottom: 16px;
-  border: 1px solid #374151;
-  border-radius: 8px;
+
+  padding: 4px;
 }
 
 .monster-list-item {
-  padding: 10px;
+  width: 56px;
+  height: 56px;
+
+  padding: 0;
+
   cursor: pointer;
-  border-bottom: 1px solid #1f2937;
+
+  border: none;
+
+  background: transparent;
 }
 
-.monster-list-item:hover {
-  background: #243047;
-}
 
-.monster-list-item:last-child {
-  border-bottom: none;
-}
+
+
 
 /* MONSTER CARD */
 
@@ -458,4 +472,87 @@ input[type="number"] {
   outline: none;
   border-color: #ff9d00;
   box-shadow: 0 0 0 1px #ff9d00;
+}
+
+.monster-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.monster-grid-item {
+  width: 56px;
+  height: 56px;
+
+  overflow: hidden;
+
+  border: 1px solid #20304f;
+
+  background: #0b1322;
+}
+
+.monster-grid-item:hover {
+  border-color: #ff9d00;
+}
+
+.monster-grid-item:hover {
+  border-color: #ff9d00;
+}
+
+.monster-grid-image {
+  width: 100%;
+  height: 100%;
+
+  display: block;
+
+  object-fit: cover;
+}
+.monster-list-container::-webkit-scrollbar {
+  width: 6px;
+}
+
+.monster-list-container::-webkit-scrollbar-thumb {
+  background: #2f3c57;
+}
+
+.monster-list-container::-webkit-scrollbar-thumb:hover {
+  background: #ff9d00;
+}
+
+.monster-list-item.selected {
+  outline: 2px solid #ff9d00;
+}
+
+.monster-list-item.unselected {
+  opacity: 0.35;
+}
+
+.monster-list-item.unselected:hover {
+  opacity: 1;
+}
+
+.monster-list-item.selected {
+  opacity: 1;
+}
+
+.monster-list-item.unselected {
+  opacity: 0.3;
+
+  filter: grayscale(100%);
+}
+
+.monster-list-item.unselected:hover {
+  opacity: 1;
+
+  filter: grayscale(0%);
+}
+
+.monster-list-item.selected {
+  opacity: 1;
+
+  filter: grayscale(0%);
+}
+
+.monster-list-item.selected .monster-grid-item {
+  border: 2px solid #ff9d00;
 }

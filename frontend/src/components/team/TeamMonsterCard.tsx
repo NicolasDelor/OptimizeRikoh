@@ -103,9 +103,18 @@ export default function TeamMonsterCard({
       </div>
 
       <div className="monster-card-header">
-        <div className="monster-image-placeholder" />
+        <div className="monster-image-placeholder">
+          {monster.imageUrl && (
+            <img
+              src={monster.imageUrl}
+              alt={monster.name}
+              className="monster-image"
+            />
+          )}
+        </div>
 
         <div className="monster-name">
+
           {monster.name}
         </div>
       </div>
