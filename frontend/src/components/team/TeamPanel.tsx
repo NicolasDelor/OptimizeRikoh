@@ -34,7 +34,6 @@ export default function TeamPanel({
 
   return (
     <div className="card">
-      <h2>Team</h2>
 
       <input
         className="monster-search-input"

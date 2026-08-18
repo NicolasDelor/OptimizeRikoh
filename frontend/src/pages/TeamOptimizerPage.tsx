@@ -80,11 +80,6 @@ export default function TeamOptimizerPage() {
 
                               duplicateNumber,
 
-                              name:
-                                duplicateNumber === 1
-                                  ? monsterName
-                                  : `${monsterName} ${duplicateNumber}`,
-
                                 name:
                                   duplicateNumber === 1
                                     ? monsterName
@@ -115,6 +110,7 @@ export default function TeamOptimizerPage() {
         artifacts: data.artifact_list?.length ?? 0,
       });
 
+
       console.log("SWEX IMPORT", data);
     }catch (error) {
        console.error("IMPORT ERROR", error);
@@ -126,7 +122,6 @@ export default function TeamOptimizerPage() {
          artifacts: 0,
        });
      }
-     ``
   };
 
   const sortedMonsters = [...store.monsters].sort((a, b) => {
@@ -209,13 +204,18 @@ export default function TeamOptimizerPage() {
       </div>
 
       {importStatus && (
-        <div className="import-success">
-          <strong>✅ Success</strong>
-
-          <div>Fichier : {importStatus.fileName}</div>
-          <div>Monstres : {importStatus.monsters}</div>
-          <div>Runes : {importStatus.runes}</div>
-          <div>Artefacts : {importStatus.artifacts}</div>
+        <div className="import-success compact">
+          ✅ Import SWEX OK
+          {" • "}
+          {store.importMode}
+          {" • "}
+          {importStatus.fileName}
+          {" • "}
+          {importStatus.monsters} monstres
+          {" • "}
+          {importStatus.runes} runes
+          {" • "}
+          {importStatus.artifacts} artefacts
         </div>
       )}
 
@@ -230,10 +230,15 @@ export default function TeamOptimizerPage() {
             availableMonsters={availableMonsters}
           />
         </div>
+      </div>
 
-        <div className="main">
+      <div className="team-config-section">
+        <h2>Team Configuration</h2>
+
+        <div className="team-config-cards">
           {sortedMonsters.map((monster) => {
-            const config = store.configs[monster.id];
+            const config =
+              store.configs[monster.id];
 
             if (!config) {
               return null;
