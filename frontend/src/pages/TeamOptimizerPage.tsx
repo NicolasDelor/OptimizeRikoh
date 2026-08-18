@@ -80,25 +80,41 @@ export default function TeamOptimizerPage() {
 
                               duplicateNumber,
 
-                                name:
-                                  duplicateNumber === 1
-                                    ? monsterName
-                                    : `${monsterName} ${duplicateNumber}`,
+                              baseHp:
+                                swarfarmMonster?.base_hp,
 
-                                imageUrl: swarfarmMonster
-                                  ? `https://swarfarm.com/static/herders/images/monsters/${swarfarmMonster.image_filename}`
-                                  : undefined,
+                              baseAtk:
+                                swarfarmMonster?.base_attack,
 
-                                hp: unit.con,
-                                atk: unit.atk,
-                                def: unit.def,
-                                spd: unit.spd,
+                              baseDef:
+                                swarfarmMonster?.base_defense,
 
-                                cr: unit.critical_rate,
-                                cd: unit.critical_damage,
-                                acc: unit.accuracy,
-                                res: unit.resist,
-                              };
+                              baseSpd:
+                                swarfarmMonster?.speed,
+
+                              name:
+                                duplicateNumber === 1
+                                  ? monsterName
+                                  : `${monsterName} ${duplicateNumber}`,
+
+                              imageUrl: swarfarmMonster
+                                ? `https://swarfarm.com/static/herders/images/monsters/${swarfarmMonster.image_filename}`
+                                : undefined,
+
+                              hp:
+                                swarfarmMonster?.base_hp ??
+                                unit.con,
+                              atk: unit.atk,
+                              def: unit.def,
+                              spd: unit.spd,
+
+                              cr: unit.critical_rate,
+                              cd: unit.critical_damage,
+                              acc: unit.accuracy,
+                              res: unit.resist,
+
+                              runes: unit.runes ?? [],
+                            };
                             }) ?? [];
 
       setAvailableMonsters(monsters);

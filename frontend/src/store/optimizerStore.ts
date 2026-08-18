@@ -27,6 +27,13 @@ export function useOptimizerStore() {
 
       imageUrl: swexMonster.imageUrl,
 
+      baseHp: swexMonster.baseHp,
+      baseAtk: swexMonster.baseAtk,
+      baseDef: swexMonster.baseDef,
+      baseSpd: swexMonster.baseSpd,
+
+      runes: swexMonster.runes ?? [],
+
       hp: swexMonster.hp,
       atk: swexMonster.atk,
       def: swexMonster.def,

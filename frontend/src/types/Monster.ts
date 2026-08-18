@@ -11,6 +11,13 @@ export interface Monster {
 
   imageUrl?: string;
 
+  runes?: any[];
+
+  baseHp?: number;
+  baseAtk?: number;
+  baseDef?: number;
+  baseSpd?: number;
+
   hp: number;
   atk: number;
   def: number;

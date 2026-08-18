@@ -1,5 +1,10 @@
 import { useState } from "react";
 import type { Monster } from "../../types/Monster";
+import {
+  getRuneBonus,
+  getSetBonus,
+  getStatValue,
+} from "../../services/statCalculator";
 
 interface Props {
   monster?: Monster;
@@ -20,75 +25,118 @@ export default function TeamMonsterCard({
     return null;
   }
 
-  const [values, setValues] = useState({
-    hpMin: "",
-    hpMax: "",
-    atkMin: "",
-    atkMax: "",
-    defMin: "",
-    defMax: "",
-    spdMin: "",
-    spdMax: "",
-    crMin: "",
-    crMax: "",
-    cdMin: "",
-    cdMax: "",
-    accMin: "",
-    accMax: "",
-    resMin: "",
-    resMax: "",
-  });
+const [values, setValues] = useState({
+  hpMin: "",
+  hpMax: "",
+  atkMin: "",
+  atkMax: "",
+  defMin: "",
+  defMax: "",
+  spdMin: "",
+  spdMax: "",
+  crMin: "",
+  crMax: "",
+  cdMin: "",
+  cdMax: "",
+  accMin: "",
+  accMax: "",
+  resMin: "",
+  resMax: "",
+});
 
-  const stats = [
-    {
-      key: "hp",
-      label: "HP",
-      base: monster.hp,
-      current: 0,
-    },
-    {
-      key: "atk",
-      label: "ATK",
-      base: monster.atk,
-      current: 0,
-    },
-    {
-      key: "def",
-      label: "DEF",
-      base: monster.def,
-      current: 0,
-    },
-    {
-      key: "spd",
-      label: "SPD",
-      base: monster.spd,
-      current: 0,
-    },
-    {
-      key: "cr",
-      label: "CR",
-      base: monster.cr,
-      current: 0,
-    },
-    {
-      key: "cd",
-      label: "CD",
-      base: monster.cd,
-      current: 0,
-    },
-    {
-      key: "acc",
-      label: "ACC",
-      base: monster.acc,
-      current: 0,
-    },
-    {
-      key: "res",
-      label: "RES",
-      base: monster.res,
-      current: 0,
-    },
-  ];
+const runes =
+  monster.runes ?? [];
+
+const getCurrentSpd = () =>
+  getRuneBonus(runes, 8) +
+  getSetBonus(runes, "spd");
+
+const getCurrentCr = () =>
+  getRuneBonus(runes, 9) +
+  getSetBonus(runes, "cr");
+
+const getCurrentCd = () =>
+  getRuneBonus(runes, 10);
+
+const getCurrentRes = () =>
+  getRuneBonus(runes, 11) +
+  getSetBonus(runes, "res");
+
+const getCurrentAcc = () =>
+  getRuneBonus(runes, 12) +
+  getSetBonus(runes, "acc");
+
+const stats = [
+  {
+    key: "hp",
+    label: "HP",
+    base: monster.hp,
+    current: getStatValue(
+      runes,
+      1,
+      2,
+      monster.baseHp ??
+        monster.hp,
+      "hp"
+    ),
+  },
+  {
+    key: "atk",
+    label: "ATK",
+    base: monster.atk,
+    current: getStatValue(
+      runes,
+      3,
+      4,
+      monster.baseAtk ??
+        monster.atk,
+      "atk"
+    ),
+  },
+  {
+    key: "def",
+    label: "DEF",
+    base: monster.def,
+    current: getStatValue(
+      runes,
+      5,
+      6,
+      monster.baseDef ??
+        monster.def,
+      "def"
+    ),
+  },
+  {
+    key: "spd",
+    label: "SPD",
+    base: monster.spd,
+    current: getCurrentSpd(),
+  },
+  {
+    key: "cr",
+    label: "CR",
+    base: monster.cr,
+    current: getCurrentCr(),
+  },
+  {
+    key: "cd",
+    label: "CD",
+    base: monster.cd,
+    current: getCurrentCd(),
+  },
+  {
+    key: "acc",
+    label: "ACC",
+    base: monster.acc,
+    current: getCurrentAcc(),
+  },
+  {
+    key: "res",
+    label: "RES",
+    base: monster.res,
+    current: getCurrentRes(),
+  },
+];
 
   return (
     <div className="card">
