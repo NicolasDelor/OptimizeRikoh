@@ -1,10 +1,8 @@
 import { useState } from "react";
+import type { Monster } from "../../types/Monster";
 
 interface Props {
-  monster?: {
-    id: number;
-    name: string;
-  };
+  monster?: Monster;
   config?: any;
   onDelete?: () => void;
   onSpeedOrderChange?: (
@@ -42,14 +40,54 @@ export default function TeamMonsterCard({
   });
 
   const stats = [
-    { key: "hp", label: "HP", base: 0, current: 0 },
-    { key: "atk", label: "ATK", base: 0, current: 0 },
-    { key: "def", label: "DEF", base: 0, current: 0 },
-    { key: "spd", label: "SPD", base: 0, current: 0 },
-    { key: "cr", label: "CR", base: 15, current: 0 },
-    { key: "cd", label: "CD", base: 50, current: 0 },
-    { key: "acc", label: "ACC", base: 0, current: 0 },
-    { key: "res", label: "RES", base: 15, current: 0 },
+    {
+      key: "hp",
+      label: "HP",
+      base: monster.hp,
+      current: 0,
+    },
+    {
+      key: "atk",
+      label: "ATK",
+      base: monster.atk,
+      current: 0,
+    },
+    {
+      key: "def",
+      label: "DEF",
+      base: monster.def,
+      current: 0,
+    },
+    {
+      key: "spd",
+      label: "SPD",
+      base: monster.spd,
+      current: 0,
+    },
+    {
+      key: "cr",
+      label: "CR",
+      base: monster.cr,
+      current: 0,
+    },
+    {
+      key: "cd",
+      label: "CD",
+      base: monster.cd,
+      current: 0,
+    },
+    {
+      key: "acc",
+      label: "ACC",
+      base: monster.acc,
+      current: 0,
+    },
+    {
+      key: "res",
+      label: "RES",
+      base: monster.res,
+      current: 0,
+    },
   ];
 
   return (
@@ -82,11 +120,16 @@ export default function TeamMonsterCard({
           type="text"
           inputMode="numeric"
           value={config.speedOrder ?? ""}
-          onChange={(e) =>
-            onSpeedOrderChange?.(
-              Number(e.target.value) || 0
-            )
-          }
+          onChange={(e) => {
+            const value = Number(e.target.value);
+
+            if (
+              !Number.isNaN(value) &&
+              value >= 1
+            ) {
+              onSpeedOrderChange?.(value);
+            }
+          }}
         />
       </div>
 
@@ -128,7 +171,8 @@ export default function TeamMonsterCard({
               onChange={(e) =>
                 setValues((prev) => ({
                   ...prev,
-                  [`${stat.key}Min`]: e.target.value,
+                  [`${stat.key}Min`]:
+                    e.target.value,
                 }))
               }
             />
@@ -145,7 +189,8 @@ export default function TeamMonsterCard({
               onChange={(e) =>
                 setValues((prev) => ({
                   ...prev,
-                  [`${stat.key}Max`]: e.target.value,
+                  [`${stat.key}Max`]:
+                    e.target.value,
                 }))
               }
             />

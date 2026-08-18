@@ -5,6 +5,9 @@ import TeamMonsterCard from "../components/team/TeamMonsterCard";
 import { useOptimizerStore } from "../store/optimizerStore";
 
 export default function TeamOptimizerPage() {
+
+
+
   const store = useOptimizerStore();
 
   const [importStatus, setImportStatus] = useState<{
@@ -29,12 +32,25 @@ export default function TeamOptimizerPage() {
       const content = await file.text();
       const data = JSON.parse(content);
 
-      const monsterIds =
-        data.unit_list?.map((unit: any) =>
-          String(unit.unit_master_id)
-        ) ?? [];
 
-      setAvailableMonsters(monsterIds);
+      const monsters =
+        data.unit_list?.map((unit: any) => ({
+          id: unit.unit_master_id,
+          hp: unit.con,
+          atk: unit.atk,
+          def: unit.def,
+          spd: unit.spd,
+          cr: unit.critical_rate,
+          cd: unit.critical_damage,
+          acc: unit.accuracy,
+          res: unit.resist,
+        })) ?? [];
+
+      setAvailableMonsters(
+        monsters.map(
+          (monster) => JSON.stringify(monster)
+        )
+      );
 
       setImportStatus({
         fileName: file.name,
@@ -69,14 +85,14 @@ export default function TeamOptimizerPage() {
   return (
     <div className="page">
       <header className="header">
-        <h1>OptimizeRikoh</h1>
+        <h1>OptmZ</h1>
 
         <div className="header-actions">
           <input
             id="swex-file-input"
+            className="hidden-file-input"
             type="file"
             accept=".json"
-            style={{ display: "none" }}
             onChange={handleImportSwex}
           />
 
@@ -94,18 +110,49 @@ export default function TeamOptimizerPage() {
         </div>
       </header>
 
-      {importStatus && (
-        <div
-          style={{
-            backgroundColor: "#14532d",
-            color: "#86efac",
-            padding: "12px",
-            borderRadius: "8px",
-            marginTop: "12px",
-            marginBottom: "12px",
-            border: "1px solid #22c55e",
-          }}
+      <div className="import-mode-container">
+        <button
+          className={
+            store.importMode === "NORMAL"
+              ? "import-mode-button active"
+              : "import-mode-button"
+          }
+          onClick={() =>
+            store.setImportMode("NORMAL")
+          }
         >
+          NORMAL
+        </button>
+
+        <button
+          className={
+            store.importMode === "RTA"
+              ? "import-mode-button active"
+              : "import-mode-button"
+          }
+          onClick={() =>
+            store.setImportMode("RTA")
+          }
+        >
+          RTA
+        </button>
+
+        <button
+          className={
+            store.importMode === "SIEGE"
+              ? "import-mode-button active"
+              : "import-mode-button"
+          }
+          onClick={() =>
+            store.setImportMode("SIEGE")
+          }
+        >
+          SIEGE
+        </button>
+      </div>
+
+      {importStatus && (
+        <div className="import-success">
           <strong>✅ Success</strong>
 
           <div>Fichier : {importStatus.fileName}</div>
