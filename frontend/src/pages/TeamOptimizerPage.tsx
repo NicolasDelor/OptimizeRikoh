@@ -6,19 +6,13 @@ import { useOptimizerStore } from "../store/optimizerStore";
 import { loadSwarfarmMonsters } from "../services/swarfarmService";
 
 export default function TeamOptimizerPage() {
+  const [swarfarmMonsters, setSwarfarmMonsters] = useState<Record<number, any>>(
+    {}
+  );
 
-    const [swarfarmMonsters, setSwarfarmMonsters] =
-      useState<Record<number, any>>({});
-
-      useEffect(() => {
-        loadSwarfarmMonsters().then(
-          setSwarfarmMonsters
-        );
-      }, []);
-
-
-
-
+  useEffect(() => {
+    loadSwarfarmMonsters().then(setSwarfarmMonsters);
+  }, []);
 
   const store = useOptimizerStore();
 
@@ -29,8 +23,7 @@ export default function TeamOptimizerPage() {
     artifacts: number;
   } | null>(null);
 
-  const [availableMonsters, setAvailableMonsters] =
-    useState<any[]>([]);
+  const [availableMonsters, setAvailableMonsters] = useState<any[]>([]);
 
   const handleImportSwex = async (
     event: React.ChangeEvent<HTMLInputElement>
@@ -47,75 +40,57 @@ export default function TeamOptimizerPage() {
 
       store.setSwexData(data);
 
-
-
       const monsters =
         data.unit_list?.map((unit: any) => {
-                              const swarfarmMonster =
-                                swarfarmMonsters[
-                                  unit.unit_master_id
-                                ];
+          const swarfarmMonster = swarfarmMonsters[unit.unit_master_id];
 
-                            const sameMonsters =
-                              data.unit_list.filter(
-                                (u: any) =>
-                                  u.unit_master_id ===
-                                  unit.unit_master_id
-                              );
+          const sameMonsters = data.unit_list.filter(
+            (u: any) => u.unit_master_id === unit.unit_master_id
+          );
 
-                            const duplicateNumber =
-                              sameMonsters.findIndex(
-                                (u: any) =>
-                                  u.unit_id === unit.unit_id
-                              ) + 1;
+          const duplicateNumber =
+            sameMonsters.findIndex((u: any) => u.unit_id === unit.unit_id) + 1;
 
-                            const monsterName =
-                              swarfarmMonster?.name ??
-                              String(unit.unit_master_id);
+          const monsterName =
+            swarfarmMonster?.name ?? String(unit.unit_master_id);
 
-                            return {
-                              id: unit.unit_master_id,
+          return {
+            id: unit.unit_master_id,
 
-                              unitId: unit.unit_id,
+            unitId: unit.unit_id,
 
-                              duplicateNumber,
+            duplicateNumber,
 
-                              baseHp:
-                                swarfarmMonster?.base_hp,
+            baseHp: swarfarmMonster?.base_hp,
 
-                              baseAtk:
-                                swarfarmMonster?.base_attack,
+            baseAtk: swarfarmMonster?.base_attack,
 
-                              baseDef:
-                                swarfarmMonster?.base_defense,
+            baseDef: swarfarmMonster?.base_defense,
 
-                              baseSpd:
-                                swarfarmMonster?.speed,
+            baseSpd: swarfarmMonster?.speed,
 
-                              name:
-                                duplicateNumber === 1
-                                  ? monsterName
-                                  : `${monsterName} ${duplicateNumber}`,
+            name:
+              duplicateNumber === 1
+                ? monsterName
+                : `${monsterName} ${duplicateNumber}`,
 
-                              imageUrl: swarfarmMonster
-                                ? `https://swarfarm.com/static/herders/images/monsters/${swarfarmMonster.image_filename}`
-                                : undefined,
+            imageUrl: swarfarmMonster
+              ? `https://swarfarm.com/static/herders/images/monsters/${swarfarmMonster.image_filename}`
+              : undefined,
 
-                              hp:
-                                swarfarmMonster?.base_hp ??
-                                unit.con,
-                              atk: unit.atk,
-                              def: unit.def,
-                              spd: unit.spd,
+            hp: swarfarmMonster?.base_hp ?? unit.con,
+            atk: unit.atk,
+            def: unit.def,
+            spd: unit.spd,
 
-                              cr: unit.critical_rate,
-                              cd: unit.critical_damage,
-                              acc: unit.accuracy,
-                              res: unit.resist,
+            cr: unit.critical_rate,
+            cd: unit.critical_damage,
+            acc: unit.accuracy,
+            res: unit.resist,
 
-                              runes: unit.runes ?? [],
-                            };
-                            }) ?? [];
+            runes: unit.runes ?? [],
+          };
+        }) ?? [];
 
       setAvailableMonsters(monsters);
 
@@ -125,27 +100,22 @@ export default function TeamOptimizerPage() {
         runes: data.runes?.length ?? 0,
         artifacts: data.artifact_list?.length ?? 0,
       });
+    } catch (error) {
+      console.error("IMPORT ERROR", error);
 
-
-      console.log("SWEX IMPORT", data);
-    }catch (error) {
-       console.error("IMPORT ERROR", error);
-
-       setImportStatus({
-         fileName: file.name,
-         monsters: 0,
-         runes: 0,
-         artifacts: 0,
-       });
-     }
+      setImportStatus({
+        fileName: file.name,
+        monsters: 0,
+        runes: 0,
+        artifacts: 0,
+      });
+    }
   };
 
   const sortedMonsters = [...store.monsters].sort((a, b) => {
-    const orderA =
-      store.configs[a.id]?.speedOrder ?? 9999;
+    const orderA = store.configs[a.id]?.speedOrder ?? 9999;
 
-    const orderB =
-      store.configs[b.id]?.speedOrder ?? 9999;
+    const orderB = store.configs[b.id]?.speedOrder ?? 9999;
 
     return orderA - orderB;
   });
@@ -166,9 +136,7 @@ export default function TeamOptimizerPage() {
 
           <button
             type="button"
-            onClick={() =>
-              document.getElementById("swex-file-input")?.click()
-            }
+            onClick={() => document.getElementById("swex-file-input")?.click()}
           >
             Import SWEX
           </button>
@@ -185,9 +153,7 @@ export default function TeamOptimizerPage() {
               ? "import-mode-button active"
               : "import-mode-button"
           }
-          onClick={() =>
-            store.setImportMode("NORMAL")
-          }
+          onClick={() => store.setImportMode("NORMAL")}
         >
           NORMAL
         </button>
@@ -198,9 +164,7 @@ export default function TeamOptimizerPage() {
               ? "import-mode-button active"
               : "import-mode-button"
           }
-          onClick={() =>
-            store.setImportMode("RTA")
-          }
+          onClick={() => store.setImportMode("RTA")}
         >
           RTA
         </button>
@@ -211,9 +175,7 @@ export default function TeamOptimizerPage() {
               ? "import-mode-button active"
               : "import-mode-button"
           }
-          onClick={() =>
-            store.setImportMode("SIEGE")
-          }
+          onClick={() => store.setImportMode("SIEGE")}
         >
           SIEGE
         </button>
@@ -253,8 +215,7 @@ export default function TeamOptimizerPage() {
 
         <div className="team-config-cards">
           {sortedMonsters.map((monster) => {
-            const config =
-              store.configs[monster.id];
+            const config = store.configs[monster.id];
 
             if (!config) {
               return null;
@@ -265,16 +226,11 @@ export default function TeamOptimizerPage() {
                 key={monster.id}
                 monster={monster}
                 config={config}
-                onDelete={() =>
-                  store.removeMonster(monster.id)
-                }
+                onDelete={() => store.removeMonster(monster.id)}
                 onSpeedOrderChange={(speedOrder) =>
-                  store.updateConfig(
-                    monster.id,
-                    {
-                      speedOrder,
-                    }
-                  )
+                  store.updateConfig(monster.id, {
+                    speedOrder,
+                  })
                 }
               />
             );

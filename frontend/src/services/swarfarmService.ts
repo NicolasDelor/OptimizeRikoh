@@ -8,11 +8,9 @@ export interface SwarfarmMonster {
 
 const map: Record<number, SwarfarmMonster> = {};
 
-(monstersData as SwarfarmMonster[]).forEach(
-  (monster) => {
-    map[monster.com2us_id] = monster;
-  }
-);
+(monstersData as SwarfarmMonster[]).forEach((monster) => {
+  map[monster.com2us_id] = monster;
+});
 
 export function loadSwarfarmMonsters() {
   return Promise.resolve(map);

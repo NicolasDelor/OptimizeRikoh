@@ -5,20 +5,8 @@ interface Props {
   updateConfig: (config: Partial<MonsterConfig>) => void;
 }
 
-export default function StatsFilters({
-  config,
-  updateConfig,
-}: Props) {
-  const statFields = [
-    "hp",
-    "atk",
-    "def",
-    "spd",
-    "cr",
-    "cd",
-    "acc",
-    "res",
-  ];
+export default function StatsFilters({ config, updateConfig }: Props) {
+  const statFields = ["hp", "atk", "def", "spd", "cr", "cd", "acc", "res"];
 
   const updateStat = (key: string, value: number | undefined) => {
     updateConfig({
@@ -39,10 +27,7 @@ export default function StatsFilters({
           type="number"
           placeholder={`${stat.toUpperCase()} Min`}
           onChange={(e) =>
-            updateStat(
-              `${stat}Min`,
-              Number(e.target.value) || undefined
-            )
+            updateStat(`${stat}Min`, Number(e.target.value) || undefined)
           }
         />,
         <input
@@ -50,10 +35,7 @@ export default function StatsFilters({
           type="number"
           placeholder={`${stat.toUpperCase()} Max`}
           onChange={(e) =>
-            updateStat(
-              `${stat}Max`,
-              Number(e.target.value) || undefined
-            )
+            updateStat(`${stat}Max`, Number(e.target.value) || undefined)
           }
         />,
       ])}

@@ -5,14 +5,14 @@ import {
   getSetBonus,
   getStatValue,
 } from "../../services/statCalculator";
+import { useOptimizerStore } from "../../store/optimizerStore";
+import { getRunesForMode } from "../../services/runeModeService";
 
 interface Props {
   monster?: Monster;
   config?: any;
   onDelete?: () => void;
-  onSpeedOrderChange?: (
-    speedOrder: number
-  ) => void;
+  onSpeedOrderChange?: (speedOrder: number) => void;
 }
 
 export default function TeamMonsterCard({
@@ -25,118 +25,92 @@ export default function TeamMonsterCard({
     return null;
   }
 
-const [values, setValues] = useState({
-  hpMin: "",
-  hpMax: "",
-  atkMin: "",
-  atkMax: "",
-  defMin: "",
-  defMax: "",
-  spdMin: "",
-  spdMax: "",
-  crMin: "",
-  crMax: "",
-  cdMin: "",
-  cdMax: "",
-  accMin: "",
-  accMax: "",
-  resMin: "",
-  resMax: "",
-});
+  const [values, setValues] = useState({
+    hpMin: "",
+    hpMax: "",
+    atkMin: "",
+    atkMax: "",
+    defMin: "",
+    defMax: "",
+    spdMin: "",
+    spdMax: "",
+    crMin: "",
+    crMax: "",
+    cdMin: "",
+    cdMax: "",
+    accMin: "",
+    accMax: "",
+    resMin: "",
+    resMax: "",
+  });
 
-const runes =
-  monster.runes ?? [];
+  const store = useOptimizerStore();
 
-const getCurrentSpd = () =>
-  getRuneBonus(runes, 8) +
-  getSetBonus(runes, "spd");
+  const runes = getRunesForMode(monster, store.importMode, store.swexData);
 
-const getCurrentCr = () =>
-  getRuneBonus(runes, 9) +
-  getSetBonus(runes, "cr");
+  const getCurrentSpd = () =>
+    getRuneBonus(runes, 8) + getSetBonus(runes, "spd");
 
-const getCurrentCd = () =>
-  getRuneBonus(runes, 10);
+  const getCurrentCr = () => getRuneBonus(runes, 9) + getSetBonus(runes, "cr");
 
-const getCurrentRes = () =>
-  getRuneBonus(runes, 11) +
-  getSetBonus(runes, "res");
+  const getCurrentCd = () => getRuneBonus(runes, 10);
 
-const getCurrentAcc = () =>
-  getRuneBonus(runes, 12) +
-  getSetBonus(runes, "acc");
+  const getCurrentRes = () =>
+    getRuneBonus(runes, 11) + getSetBonus(runes, "res");
 
-const stats = [
-  {
-    key: "hp",
-    label: "HP",
-    base: monster.hp,
-    current: getStatValue(
-      runes,
-      1,
-      2,
-      monster.baseHp ??
-        monster.hp,
-      "hp"
-    ),
-  },
-  {
-    key: "atk",
-    label: "ATK",
-    base: monster.atk,
-    current: getStatValue(
-      runes,
-      3,
-      4,
-      monster.baseAtk ??
-        monster.atk,
-      "atk"
-    ),
-  },
-  {
-    key: "def",
-    label: "DEF",
-    base: monster.def,
-    current: getStatValue(
-      runes,
-      5,
-      6,
-      monster.baseDef ??
-        monster.def,
-      "def"
-    ),
-  },
-  {
-    key: "spd",
-    label: "SPD",
-    base: monster.spd,
-    current: getCurrentSpd(),
-  },
-  {
-    key: "cr",
-    label: "CR",
-    base: monster.cr,
-    current: getCurrentCr(),
-  },
-  {
-    key: "cd",
-    label: "CD",
-    base: monster.cd,
-    current: getCurrentCd(),
-  },
-  {
-    key: "acc",
-    label: "ACC",
-    base: monster.acc,
-    current: getCurrentAcc(),
-  },
-  {
-    key: "res",
-    label: "RES",
-    base: monster.res,
-    current: getCurrentRes(),
-  },
-];
+  const getCurrentAcc = () =>
+    getRuneBonus(runes, 12) + getSetBonus(runes, "acc");
+
+  const stats = [
+    {
+      key: "hp",
+      label: "HP",
+      base: monster.hp,
+      current: getStatValue(runes, 1, 2, monster.baseHp ?? monster.hp, "hp"),
+    },
+    {
+      key: "atk",
+      label: "ATK",
+      base: monster.atk,
+      current: getStatValue(runes, 3, 4, monster.baseAtk ?? monster.atk, "atk"),
+    },
+    {
+      key: "def",
+      label: "DEF",
+      base: monster.def,
+      current: getStatValue(runes, 5, 6, monster.baseDef ?? monster.def, "def"),
+    },
+    {
+      key: "spd",
+      label: "SPD",
+      base: monster.spd,
+      current: getCurrentSpd(),
+    },
+    {
+      key: "cr",
+      label: "CR",
+      base: monster.cr,
+      current: getCurrentCr(),
+    },
+    {
+      key: "cd",
+      label: "CD",
+      base: monster.cd,
+      current: getCurrentCd(),
+    },
+    {
+      key: "acc",
+      label: "ACC",
+      base: monster.acc,
+      current: getCurrentAcc(),
+    },
+    {
+      key: "res",
+      label: "RES",
+      base: monster.res,
+      current: getCurrentRes(),
+    },
+  ];
 
   return (
     <div className="card">
@@ -161,16 +135,11 @@ const stats = [
           )}
         </div>
 
-        <div className="monster-name">
-
-          {monster.name}
-        </div>
+        <div className="monster-name">{monster.name}</div>
       </div>
 
       <div className="move-order-container">
-        <label className="move-order-label">
-          Move Order
-        </label>
+        <label className="move-order-label">Move Order</label>
 
         <input
           className="move-order-input"
@@ -180,10 +149,7 @@ const stats = [
           onChange={(e) => {
             const value = Number(e.target.value);
 
-            if (
-              !Number.isNaN(value) &&
-              value >= 1
-            ) {
+            if (!Number.isNaN(value) && value >= 1) {
               onSpeedOrderChange?.(value);
             }
           }}
@@ -200,36 +166,22 @@ const stats = [
         </div>
 
         {stats.map((stat) => (
-          <div
-            key={stat.key}
-            className="stat-row"
-          >
-            <div className="stat-label">
-              {stat.label}
-            </div>
+          <div key={stat.key} className="stat-row">
+            <div className="stat-label">{stat.label}</div>
 
-            <div className="stat-value">
-              {stat.base}
-            </div>
+            <div className="stat-value">{stat.base}</div>
 
-            <div className="stat-value">
-              +{stat.current}
-            </div>
+            <div className="stat-value">+{stat.current}</div>
 
             <input
               className="stat-input"
               type="text"
               inputMode="numeric"
-              value={
-                values[
-                  `${stat.key}Min` as keyof typeof values
-                ]
-              }
+              value={values[`${stat.key}Min` as keyof typeof values]}
               onChange={(e) =>
                 setValues((prev) => ({
                   ...prev,
-                  [`${stat.key}Min`]:
-                    e.target.value,
+                  [`${stat.key}Min`]: e.target.value,
                 }))
               }
             />
@@ -238,16 +190,11 @@ const stats = [
               className="stat-input"
               type="text"
               inputMode="numeric"
-              value={
-                values[
-                  `${stat.key}Max` as keyof typeof values
-                ]
-              }
+              value={values[`${stat.key}Max` as keyof typeof values]}
               onChange={(e) =>
                 setValues((prev) => ({
                   ...prev,
-                  [`${stat.key}Max`]:
-                    e.target.value,
+                  [`${stat.key}Max`]: e.target.value,
                 }))
               }
             />

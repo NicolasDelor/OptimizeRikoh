@@ -8,26 +8,14 @@ interface Props {
   updateConfig: (config: Partial<MonsterConfigType>) => void;
 }
 
-export default function MonsterConfig({
-  config,
-  updateConfig,
-}: Props) {
+export default function MonsterConfig({ config, updateConfig }: Props) {
   return (
     <>
-      <StatsFilters
-        config={config}
-        updateConfig={updateConfig}
-      />
+      <StatsFilters config={config} updateConfig={updateConfig} />
 
-      <SetsFilters
-        config={config}
-        updateConfig={updateConfig}
-      />
+      <SetsFilters config={config} updateConfig={updateConfig} />
 
-      <AdvancedFilters
-        config={config}
-        updateConfig={updateConfig}
-      />
+      <AdvancedFilters config={config} updateConfig={updateConfig} />
     </>
   );
 }

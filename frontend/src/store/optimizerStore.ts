@@ -10,8 +10,7 @@ export function useOptimizerStore() {
 
   const [configs, setConfigs] = useState<Record<number, MonsterConfig>>({});
 
-  const [swexData, setSwexData] =
-    useState<any>(null);
+  const [swexData, setSwexData] = useState<any>(null);
 
   const addMonster = (monsterData: string) => {
     const swexMonster = JSON.parse(monsterData);
@@ -64,9 +63,9 @@ export function useOptimizerStore() {
     setSelectedMonsterId(id);
   };
 
-  const [importMode, setImportMode] = useState<
-    "NORMAL" | "RTA" | "SIEGE"
-  >("NORMAL");
+  const [importMode, setImportMode] = useState<"NORMAL" | "RTA" | "SIEGE">(
+    "NORMAL"
+  );
 
   const removeMonster = (id: number) => {
     setMonsters((prev) => prev.filter((monster) => monster.id !== id));
@@ -96,21 +95,21 @@ export function useOptimizerStore() {
   };
 
   return {
-       monsters,
-       configs,
-       selectedMonsterId,
+    monsters,
+    configs,
+    selectedMonsterId,
 
-       swexData,
+    swexData,
 
-       addMonster,
-       removeMonster,
-       updateConfig,
+    addMonster,
+    removeMonster,
+    updateConfig,
 
-       setSelectedMonsterId,
+    setSelectedMonsterId,
 
-       importMode,
-       setImportMode,
+    importMode,
+    setImportMode,
 
-       setSwexData,
-     };
+    setSwexData,
+  };
 }

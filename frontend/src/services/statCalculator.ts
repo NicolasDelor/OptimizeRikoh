@@ -1,24 +1,12 @@
-export function getRuneBonus(
-  runes: any[],
-  statType: number
-) {
+export function getRuneBonus(runes: any[], statType: number) {
   let total = 0;
 
   runes.forEach((rune) => {
-    const effects = [
-      rune.pri_eff,
-      rune.prefix_eff,
-      ...(rune.sec_eff ?? []),
-    ];
+    const effects = [rune.pri_eff, rune.prefix_eff, ...(rune.sec_eff ?? [])];
 
     effects.forEach((effect: any) => {
-      if (
-        Array.isArray(effect) &&
-        effect[0] === statType
-      ) {
-        total +=
-          Number(effect[1] ?? 0) +
-          Number(effect[3] ?? 0);
+      if (Array.isArray(effect) && effect[0] === statType) {
+        total += Number(effect[1] ?? 0) + Number(effect[3] ?? 0);
       }
     });
   });
@@ -26,54 +14,28 @@ export function getRuneBonus(
   return total;
 }
 
-export function getSetBonus(
-  runes: any[],
-  stat: string
-) {
-  const counts: Record<number, number> =
-    {};
+export function getSetBonus(runes: any[], stat: string) {
+  const counts: Record<number, number> = {};
 
   runes.forEach((rune) => {
-    counts[rune.set_id] =
-      (counts[rune.set_id] ?? 0) + 1;
+    counts[rune.set_id] = (counts[rune.set_id] ?? 0) + 1;
   });
 
   let bonus = 0;
 
-  const energy =
-    Math.floor(
-      (counts[4] ?? 0) / 2
-    );
+  const energy = Math.floor((counts[4] ?? 0) / 2);
 
-  const guard =
-    Math.floor(
-      (counts[8] ?? 0) / 2
-    );
+  const guard = Math.floor((counts[8] ?? 0) / 2);
 
-  const blade =
-    Math.floor(
-      (counts[5] ?? 0) / 2
-    );
+  const blade = Math.floor((counts[5] ?? 0) / 2);
 
-  const focus =
-    Math.floor(
-      (counts[6] ?? 0) / 2
-    );
+  const focus = Math.floor((counts[6] ?? 0) / 2);
 
-  const endure =
-    Math.floor(
-      (counts[7] ?? 0) / 2
-    );
+  const endure = Math.floor((counts[7] ?? 0) / 2);
 
-  const fatal =
-    Math.floor(
-      (counts[1] ?? 0) / 4
-    );
+  const fatal = Math.floor((counts[1] ?? 0) / 4);
 
-  const swift =
-    Math.floor(
-      (counts[3] ?? 0) / 4
-    );
+  const swift = Math.floor((counts[3] ?? 0) / 4);
 
   switch (stat) {
     case "hp":
@@ -115,22 +77,11 @@ export function getStatValue(
   baseValue: number,
   statName: string
 ) {
-  const flat =
-    getRuneBonus(runes, flatType);
+  const flat = getRuneBonus(runes, flatType);
 
-  const percent =
-    getRuneBonus(runes, percentType);
+  const percent = getRuneBonus(runes, percentType);
 
-  const setPercent =
-    getSetBonus(
-      runes,
-      statName
-    );
+  const setPercent = getSetBonus(runes, statName);
 
-  return Math.round(
-    flat +
-      (baseValue *
-        (percent + setPercent)) /
-        100
-  );
+  return Math.round(flat + (baseValue * (percent + setPercent)) / 100);
 }

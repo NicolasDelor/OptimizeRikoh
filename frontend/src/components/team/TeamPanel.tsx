@@ -25,72 +25,54 @@ export default function TeamPanel({
 
     return availableMonsters
       .filter((monster) =>
-        monster.name
-          .toLowerCase()
-          .includes(search.toLowerCase())
+        monster.name.toLowerCase().includes(search.toLowerCase())
       )
       .slice(0, 50);
   }, [search, availableMonsters]);
 
   return (
     <div className="card">
-
       <input
         className="monster-search-input"
         type="text"
         placeholder="Rechercher un monstre..."
         value={search}
-        onChange={(e) =>
-          setSearch(e.target.value)
-        }
+        onChange={(e) => setSearch(e.target.value)}
       />
 
       <div className="monster-list-container">
-        {filteredMonsters.map(
-          (monster, index) => {
-            const selectedMonster =
-              monsters.find(
-                (m) =>
-                  m.unitId ===
-                  monster.unitId
-              );
+        {filteredMonsters.map((monster, index) => {
+          const selectedMonster = monsters.find(
+            (m) => m.unitId === monster.unitId
+          );
 
-            return (
-              <div
-                key={`${monster.unitId}-${index}`}
-                className={`monster-list-item ${
-                  selectedMonster
-                    ? "selected"
-                    : "unselected"
-                }`}
-                title={monster.name}
-                onClick={() => {
-                  if (selectedMonster) {
-                    onDelete(
-                      selectedMonster.id
-                    );
-                  } else {
-                    onAdd(
-                      JSON.stringify(
-                        monster
-                      )
-                    );
-                  }
-                }}
-              >
-                <div className="monster-grid-item">
-                                {monster.imageUrl && (
-                                  <img
-                                    src={monster.imageUrl}
-                                    alt={monster.name}
-                                    className="monster-grid-image"
-                                  />
-                                )}
-                            </div>
+          return (
+            <div
+              key={`${monster.unitId}-${index}`}
+              className={`monster-list-item ${
+                selectedMonster ? "selected" : "unselected"
+              }`}
+              title={monster.name}
+              onClick={() => {
+                if (selectedMonster) {
+                  onDelete(selectedMonster.id);
+                } else {
+                  onAdd(JSON.stringify(monster));
+                }
+              }}
+            >
+              <div className="monster-grid-item">
+                {monster.imageUrl && (
+                  <img
+                    src={monster.imageUrl}
+                    alt={monster.name}
+                    className="monster-grid-image"
+                  />
+                )}
               </div>
-            );
-          }
-        )}
+            </div>
+          );
+        })}
       </div>
     </div>
   );

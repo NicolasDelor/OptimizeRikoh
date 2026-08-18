@@ -5,10 +5,7 @@ interface Props {
   updateConfig: (config: Partial<MonsterConfig>) => void;
 }
 
-export default function AdvancedFilters({
-  config,
-  updateConfig,
-}: Props) {
+export default function AdvancedFilters({ config, updateConfig }: Props) {
   return (
     <div className="card">
       <h3>Advanced Filters</h3>
