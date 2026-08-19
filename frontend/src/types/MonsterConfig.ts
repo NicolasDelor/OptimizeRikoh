@@ -30,6 +30,10 @@ export interface MonsterConfig {
   requiredSets: string[];
   forbiddenSets: string[];
 
+  slot2MainStats: string[];
+  slot4MainStats: string[];
+  slot6MainStats: string[];
+
   speedOrder?: number;
 
   focus?: string;

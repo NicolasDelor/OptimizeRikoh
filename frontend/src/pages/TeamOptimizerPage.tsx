@@ -235,6 +235,9 @@ export default function TeamOptimizerPage() {
                     speedOrder,
                   })
                 }
+                onConfigChange={(configUpdate) =>
+                  store.updateConfig(monster.id, configUpdate)
+                }
               />
             );
           })}
