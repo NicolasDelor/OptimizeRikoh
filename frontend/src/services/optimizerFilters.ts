@@ -1,4 +1,71 @@
 import type { MonsterConfig } from "../types/MonsterConfig";
+import { mainStatNames } from "../data/runeData";
+
+
+export function passesSlotFilters(
+
+  runes: any[],
+  config: MonsterConfig
+) {
+
+  const slot2Rune = runes.find(
+    (r) => r.slot_no === 2
+  );
+
+  const slot4Rune = runes.find(
+    (r) => r.slot_no === 4
+  );
+
+  const slot6Rune = runes.find(
+    (r) => r.slot_no === 6
+  );
+
+  const slot2Main =
+    mainStatNames[slot2Rune?.pri_eff?.[0]] ?? "";
+
+  const slot4Main =
+    mainStatNames[slot4Rune?.pri_eff?.[0]] ?? "";
+
+  const slot6Main =
+    mainStatNames[slot6Rune?.pri_eff?.[0]] ?? "";
+
+     console.log(
+          "SLOTS",
+          slot2Main,
+          slot4Main,
+          slot6Main
+        );
+
+        console.log(
+          "CONFIG",
+          config.slot2MainStats,
+          config.slot4MainStats,
+          config.slot6MainStats
+        );
+
+  if (
+    config.slot2MainStats.length > 0 &&
+    !config.slot2MainStats.includes(slot2Main)
+  ) {
+    return false;
+  }
+
+  if (
+    config.slot4MainStats.length > 0 &&
+    !config.slot4MainStats.includes(slot4Main)
+  ) {
+    return false;
+  }
+
+  if (
+    config.slot6MainStats.length > 0 &&
+    !config.slot6MainStats.includes(slot6Main)
+  ) {
+    return false;
+  }
+
+  return true;
+}
 
 export function passesSetFilters(
   activeSets: string[],

@@ -4,7 +4,7 @@ import ResultsPanel from "../components/results/ResultsPanel";
 import TeamMonsterCard from "../components/team/TeamMonsterCard";
 import { useOptimizerStore } from "../store/optimizerStore";
 import { loadSwarfarmMonsters } from "../services/swarfarmService";
-import { optimizeMonster } from "../services/optimizerEngine";
+import { optimizeMonster, optimizeMonsterRunes } from "../services/optimizerEngine";
 
 export default function TeamOptimizerPage() {
   const [swarfarmMonsters, setSwarfarmMonsters] = useState<Record<number, any>>(
@@ -153,7 +153,12 @@ export default function TeamOptimizerPage() {
                  return [];
                }
 
-               return optimizeMonster(monster, config);
+               return optimizeMonsterRunes(
+                 monster,
+                 config,
+                 store.swexData?.runes ?? []
+               );
+
              });
              store.setResults(results);
            }}
