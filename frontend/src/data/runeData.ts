@@ -35,3 +35,27 @@ export const mainStatNames: Record<number, string> = {
   11: "RES",
   12: "ACC",
 };
+
+export const runeSetPieces: Record<string, number> = {
+  Energy: 2,
+  Guard: 2,
+  Swift: 4,
+  Blade: 2,
+  Rage: 4,
+  Focus: 2,
+  Endure: 2,
+  Fatal: 4,
+  Despair: 4,
+  Vampire: 4,
+  Violent: 4,
+  Nemesis: 2,
+  Will: 2,
+  Shield: 2,
+  Revenge: 2,
+  Destroy: 2,
+  Fight: 2,
+  Determination: 2,
+  Enhance: 2,
+  Accuracy: 2,
+  Tolerance: 2,
+};

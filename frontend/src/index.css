@@ -547,3 +547,44 @@ input[type="number"] {
     font-size: 11px;
   }
 }
+.results-table-container {
+  overflow-x: auto;
+}
+
+.results-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+.results-table th {
+  background: #081018;
+  color: #ffb74d;
+  padding: 12px;
+  text-align: center;
+  border-bottom: 1px solid #233244;
+}
+
+.results-table td {
+  padding: 10px;
+  text-align: center;
+  border-bottom: 1px solid #233244;
+}
+
+.results-table tbody tr:nth-child(even) {
+  background: rgba(255,255,255,0.03);
+}
+
+.results-table tbody tr:hover {
+  background: rgba(255,183,77,0.08);
+}
+
+.spd-cell {
+  color: #4ade80;
+  font-weight: 700;
+}
+
+.results-table th {
+  position: sticky;
+  top: 0;
+}

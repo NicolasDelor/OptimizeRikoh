@@ -1,3 +1,8 @@
+import {
+  runeSetNames,
+  runeSetPieces,
+} from "../data/runeData";
+
 export function getRuneBonus(runes: any[], statType: number) {
   let total = 0;
 
@@ -85,55 +90,41 @@ export function getStatValue(
 
   return Math.round(flat + (baseValue * (percent + setPercent)) / 100);
 }
-
 export function getActiveSets(runes: any[]) {
-  const counts = new Map<number, number>();
+  const counts: Record<string, number> = {};
 
   runes.forEach((rune) => {
-    counts.set(
-      rune.set_id,
-      (counts.get(rune.set_id) ?? 0) + 1
-    );
-  });
+    const setName = runeSetNames[rune.set_id];
 
-  const requirements: Record<number, number> = {
-    1: 2,
-    2: 2,
-    3: 4,
-    4: 2,
-    5: 4,
-    6: 2,
-    8: 2,
-    10: 4,
-    11: 4,
-    13: 4,
-    14: 2,
-    15: 2,
-    16: 2,
-    17: 2,
-    18: 2,
-    19: 2,
-    20: 2,
-    21: 2,
-    22: 2,
-    23: 2,
-  };
-
-  const activeSets: number[] = [];
-
-  counts.forEach((count, setId) => {
-    const required = requirements[setId];
-
-    if (!required) {
+    if (!setName) {
       return;
     }
 
-    const completeSets = Math.floor(count / required);
-
-    for (let i = 0; i < completeSets; i++) {
-      activeSets.push(setId);
-    }
+    counts[setName] =
+      (counts[setName] ?? 0) + 1;
   });
+
+  const activeSets: string[] = [];
+
+  Object.entries(counts).forEach(
+    ([setName, count]) => {
+      const pieces = runeSetPieces[setName];
+
+      if (!pieces) {
+        return;
+      }
+
+      const completeSets = Math.floor(
+        count / pieces
+      );
+
+      for (let i = 0; i < completeSets; i++) {
+        activeSets.push(setName);
+      }
+    }
+  );
 
   return activeSets;
 }
+
+
