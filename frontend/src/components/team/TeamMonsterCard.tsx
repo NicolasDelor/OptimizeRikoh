@@ -1,11 +1,9 @@
 import { useState } from "react";
 import type { Monster } from "../../types/Monster";
-import {
-  getRuneBonus,
-  getSetBonus,
-  getStatValue,
-} from "../../services/statCalculator";
+import { getRuneBonus, getSetBonus, getStatValue } from "../../services/statCalculator";
 import { getRunesForMode } from "../../services/runeModeService";
+import { getActiveSets } from "../../services/statCalculator";
+import { runeSetIcons } from "../../data/runeSetIcons";
 
 interface Props {
   monster?: Monster;
@@ -47,12 +45,6 @@ export default function TeamMonsterCard({
     resMin: "",
     resMax: "",
   });
-
-    console.log(
-      "IMPORT MODE",
-      importMode
-    );
-    ``
 
   const runes = getRunesForMode(
     monster,
@@ -147,26 +139,44 @@ export default function TeamMonsterCard({
           )}
         </div>
 
-        <div className="monster-name">{monster.name}</div>
-      </div>
+        <div>
+           <div className="monster-name">{monster.name}</div>
 
-      <div className="move-order-container">
-        <label className="move-order-label">Move Order</label>
+           <div className="monster-rune-sets">
+             {getActiveSets(runes).map((setId, index) => (
+               <img
+                 key={`${setId}-${index}`}
+                 src={runeSetIcons[setId]}
+                 alt={setId}
+                 className="rune-set-icon"
+               />
+             ))}
+           </div>
+         </div>
 
-        <input
-          className="move-order-input"
-          type="text"
-          inputMode="numeric"
-          value={config.speedOrder ?? ""}
-          onChange={(e) => {
-            const value = Number(e.target.value);
+         </div>
 
-            if (!Number.isNaN(value) && value >= 1) {
-              onSpeedOrderChange?.(value);
-            }
-          }}
-        />
-      </div>
+         <div className="move-order-container">
+           <label className="move-order-label">
+             Move Order
+           </label>
+
+           <input
+             className="move-order-input"
+             type="text"
+             inputMode="numeric"
+             value={config.speedOrder ?? ""}
+             onChange={(e) => {
+               const value = Number(e.target.value);
+
+               if (!Number.isNaN(value) && value >= 1) {
+                 onSpeedOrderChange?.(value);
+               }
+             }}
+           />
+         </div>
+
+
 
       <div className="monster-stats">
         <div className="stats-header">

@@ -1,3 +1,5 @@
 cd C:\Projet_perf\F1\PROJET\OptimizeRikoh\frontend
-
+$env:Path += ";C:\Tools\node\node-v24.19.0-win-x64\node-v24.19.0-win-x64"
 C:\Tools\node\node-v24.19.0-win-x64\node-v24.19.0-win-x64\npm.cmd run dev
+
+Bien à présent j'aimerai qu'on voit les parties calculs. N'hésite pas à me dire ce dont tu as besoin. Pour commencer on aurait plusieurs mod de calcul, le premier serait "optimisation libre" ou si t'as un meilleur : Il permettrait de trouver plusieurs builds de plusieurs monstres en ayant des valeurs min/max dans les filtres plus haut. Pour le moment on ne se concentre que sur les runes. Il faut aussi définir qu'il y
