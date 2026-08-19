@@ -4,6 +4,7 @@ import ResultsPanel from "../components/results/ResultsPanel";
 import TeamMonsterCard from "../components/team/TeamMonsterCard";
 import { useOptimizerStore } from "../store/optimizerStore";
 import { loadSwarfarmMonsters } from "../services/swarfarmService";
+import { optimizeMonster } from "../services/optimizerEngine";
 
 export default function TeamOptimizerPage() {
   const [swarfarmMonsters, setSwarfarmMonsters] = useState<Record<number, any>>(
@@ -143,7 +144,22 @@ export default function TeamOptimizerPage() {
           </button>
 
           <button>Save</button>
-          <button>Optimize Team</button>
+         <button
+           onClick={() => {
+             const results = store.monsters.flatMap((monster) => {
+               const config = store.configs[monster.id];
+
+               if (!config) {
+                 return [];
+               }
+
+               return optimizeMonster(monster, config);
+             });
+             store.setResults(results);
+           }}
+         >
+           Optimize Team
+         </button>
         </div>
       </header>
 
@@ -244,7 +260,9 @@ export default function TeamOptimizerPage() {
         </div>
       </div>
 
-      <ResultsPanel />
+      <ResultsPanel
+        results={store.results}
+      />
     </div>
   );
 }

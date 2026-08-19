@@ -35,26 +35,6 @@ export default function TeamMonsterCard({
 
   const [showMainStats, setShowMainStats] = useState(false);
 
-
-  const [values, setValues] = useState({
-    hpMin: "",
-    hpMax: "",
-    atkMin: "",
-    atkMax: "",
-    defMin: "",
-    defMax: "",
-    spdMin: "",
-    spdMax: "",
-    crMin: "",
-    crMax: "",
-    cdMin: "",
-    cdMax: "",
-    accMin: "",
-    accMax: "",
-    resMin: "",
-    resMax: "",
-  });
-
   const runes = getRunesForMode(
     monster,
     importMode,
@@ -198,8 +178,6 @@ export default function TeamMonsterCard({
       "ATK Flat",
       "DEF Flat",
     ];
-
-console.log("CONFIG SETS", config.requiredSets);
 
   return (
     <div className="card">
@@ -468,12 +446,19 @@ console.log("CONFIG SETS", config.requiredSets);
               className="stat-input"
               type="text"
               inputMode="numeric"
-              value={values[`${stat.key}Min` as keyof typeof values]}
+              value={
+                config.stats?.[`${stat.key}Min`] ?? ""
+              }
               onChange={(e) =>
-                setValues((prev) => ({
-                  ...prev,
-                  [`${stat.key}Min`]: e.target.value,
-                }))
+                onConfigChange?.({
+                  stats: {
+                    ...config.stats,
+                    [`${stat.key}Min`]:
+                      e.target.value === ""
+                        ? undefined
+                        : Number(e.target.value),
+                  },
+                })
               }
             />
 
@@ -481,12 +466,19 @@ console.log("CONFIG SETS", config.requiredSets);
               className="stat-input"
               type="text"
               inputMode="numeric"
-              value={values[`${stat.key}Max` as keyof typeof values]}
+              value={
+                config.stats?.[`${stat.key}Max`] ?? ""
+              }
               onChange={(e) =>
-                setValues((prev) => ({
-                  ...prev,
-                  [`${stat.key}Max`]: e.target.value,
-                }))
+                onConfigChange?.({
+                  stats: {
+                    ...config.stats,
+                    [`${stat.key}Max`]:
+                      e.target.value === ""
+                        ? undefined
+                        : Number(e.target.value),
+                  },
+                })
               }
             />
           </div>

@@ -2,6 +2,7 @@ import { useState } from "react";
 import type { Monster } from "../../types/Monster";
 import type { MonsterConfig } from "../../types/MonsterConfig";
 import { runeSetNames, mainStatNames } from "../data/runeData";
+import type { OptimizationResult } from "../types/OptimizationResult";
 
 export function useOptimizerStore() {
   const [monsters, setMonsters] = useState<Monster[]>([]);
@@ -12,6 +13,9 @@ export function useOptimizerStore() {
   const [configs, setConfigs] = useState<Record<number, MonsterConfig>>({});
 
   const [swexData, setSwexData] = useState<any>(null);
+
+  const [results, setResults] =
+    useState<OptimizationResult[]>([]);
 
   const runeSetNames: Record<number, string> = {
     1: "Fatal",
@@ -170,18 +174,15 @@ const mainStatNames: Record<number, string> = {
     monsters,
     configs,
     selectedMonsterId,
-
+    results,
+    setResults,
     swexData,
-
     addMonster,
     removeMonster,
     updateConfig,
-
     setSelectedMonsterId,
-
     importMode,
     setImportMode,
-
     setSwexData,
   };
 }
