@@ -189,6 +189,7 @@ const focusStats = [
   "acc",
   "res",
   "ehp",
+  "efficiency",
 ];
 
   return (

@@ -1,5 +1,6 @@
 export interface OptimizationResult {
   monsterId: number;
+  efficiency: number;
 
   hp: number;
   atk: number;

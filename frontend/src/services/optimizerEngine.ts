@@ -23,7 +23,17 @@ function compareResults(
   const effectiveFocus = focus ?? ["spd"];
 
 
-  for (const stat of effectiveFocus) {
+for (const stat of effectiveFocus) {
+    if (stat === "efficiency") {
+        const aValue = (a as any).efficiency ?? 0;
+        const bValue = (b as any).efficiency ?? 0;
+
+        if (aValue !== bValue) {
+          return bValue - aValue;
+        }
+
+        continue;
+      }
     const aValue = (a as any)[stat] ?? 0;
     const bValue = (b as any)[stat] ?? 0;
 
@@ -230,19 +240,61 @@ const filteredSlot6Runes =
           { slot: 6, runes: filteredSlot6Runes },
         ].sort((a, b) => a.runes.length - b.runes.length);
 
-    const runeSorter = (a: any, b: any) => {
-      const aRequired = requiredSetNames.has(
-        runeSetNames[a.set_id]
-      );
+    const primaryFocus =
+      config.focus?.[0] ?? "spd";
 
-      const bRequired = requiredSetNames.has(
-        runeSetNames[b.set_id]
-      );
+    const getFocusValue = (
+      rune: any
+    ) => {
+      switch (primaryFocus) {
+        case "hp":
+          return rune.cachedHp;
+
+        case "atk":
+          return rune.cachedAtk;
+
+        case "def":
+          return rune.cachedDef;
+
+        case "cr":
+          return rune.cachedCr;
+
+        case "cd":
+          return rune.cachedCd;
+
+        case "acc":
+          return rune.cachedAcc;
+
+        case "res":
+          return rune.cachedRes;
+
+        case "spd":
+        default:
+          return rune.cachedSpd;
+      }
+    };
+
+    const runeSorter = (
+      a: any,
+      b: any
+    ) => {
+      const aRequired =
+        requiredSetNames.has(
+          runeSetNames[a.set_id]
+        );
+
+      const bRequired =
+        requiredSetNames.has(
+          runeSetNames[b.set_id]
+        );
 
       if (aRequired && !bRequired) return -1;
       if (!aRequired && bRequired) return 1;
 
-      return b.cachedSpd - a.cachedSpd;
+      return (
+        getFocusValue(b) -
+        getFocusValue(a)
+      );
     };
 
     for (const slot of slotRunes) {
@@ -563,7 +615,7 @@ function explore(
       return;
 explored++;
 
-    if (results.length >= 100) {
+    if (results.length >= 10000) {
       stopRequested = true;
       return;
     }
@@ -578,6 +630,12 @@ const score =
   stats.acc * 5 +
   ehp / 1000;
 
+const efficiency =
+  stats.spd +
+  stats.cr +
+  stats.cd +
+  stats.acc +
+  stats.res;
     results.push({
 
       monsterId: monster.id,
@@ -593,6 +651,7 @@ const score =
       res: stats.res,
 
       ehp,
+      efficiency,
 
       sets: activeSets,
 
@@ -985,6 +1044,14 @@ export function optimizeMonster(
       (1140 + stats.def) /
       1000;
 
+      const efficiency =
+        stats.spd +
+        stats.cr +
+        stats.cd +
+        stats.acc +
+        stats.res;
+
+
 
   return [
     {
@@ -1001,6 +1068,7 @@ export function optimizeMonster(
       res: stats.res,
 
       ehp,
+      efficiency,
 
       sets: activeSets,
 

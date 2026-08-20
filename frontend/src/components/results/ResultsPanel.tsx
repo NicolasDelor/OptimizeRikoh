@@ -26,6 +26,7 @@ const [visibleColumns, setVisibleColumns] = useState({
   acc: false,
   res: false,
   ehp: false,
+  efficiency: false,
   slots: true,
 });
 
@@ -70,8 +71,8 @@ const [visibleColumns, setVisibleColumns] = useState({
             >
               <div className="results-header">
                 <h3>{monsterResult.monsterName}</h3>
-                <span>
-                  {monsterResult.results.length} builds
+                <span className="build-count">
+                  {monsterResult.results.length.toLocaleString()} builds
                 </span>
               </div>
 

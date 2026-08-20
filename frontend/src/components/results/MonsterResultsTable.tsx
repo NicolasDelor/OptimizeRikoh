@@ -15,6 +15,7 @@ interface Props {
     acc: boolean;
     res: boolean;
     ehp: boolean;
+    efficiency: boolean;
     slots: boolean;
   };
 }
@@ -36,9 +37,15 @@ export default function MonsterResultsTable({
   const [sortDirection, setSortDirection] =
     useState<"asc" | "desc">("desc");
 
+    const PAGE_SIZE = 10;
+
+    const [currentPage, setCurrentPage] =
+      useState(1);
+
   function handleSort(
     column: keyof OptimizationResult
   ) {
+      setCurrentPage(1);
     if (sortColumn === column) {
       setSortDirection(
         sortDirection === "asc"
@@ -80,6 +87,16 @@ export default function MonsterResultsTable({
       ? String(aValue).localeCompare(String(bValue))
       : String(bValue).localeCompare(String(aValue));
   });
+
+    const totalPages = Math.ceil(
+      sortedResults.length / PAGE_SIZE
+    );
+
+    const pagedResults = sortedResults.slice(
+      (currentPage - 1) * PAGE_SIZE,
+      currentPage * PAGE_SIZE
+    );
+
 
   return (
     <div className="results-table-container">
@@ -146,6 +163,13 @@ export default function MonsterResultsTable({
               </th>
             )}
 
+            {visibleColumns.efficiency && (
+              <th onClick={() => handleSort("efficiency")}>
+                EFF{getSortIcon("efficiency")}
+              </th>
+            )}
+
+
             {visibleColumns.slots && (
               <th>2/4/6</th>
             )}
@@ -153,9 +177,13 @@ export default function MonsterResultsTable({
         </thead>
 
         <tbody>
-          {sortedResults.map((result, index) => (
+          {pagedResults.map((result, index) => (
             <tr key={index}>
-              <td>{index + 1}</td>
+              <td>
+                {(currentPage - 1) * PAGE_SIZE +
+                  index +
+                  1}
+              </td>
 
               {visibleColumns.sets && (
                 <td>{result.sets.join(", ")}</td>
@@ -198,6 +226,9 @@ export default function MonsterResultsTable({
               {visibleColumns.ehp && (
                 <td>{Math.round(result.ehp)}</td>
               )}
+                {visibleColumns.efficiency && (
+                  <td>{Math.round(result.efficiency)}</td>
+                )}
 
               {visibleColumns.slots && (
                 <td>
@@ -208,6 +239,32 @@ export default function MonsterResultsTable({
           ))}
         </tbody>
       </table>
+
+      <div className="pagination">
+        <button
+          disabled={currentPage === 1}
+          onClick={() =>
+            setCurrentPage((p) => p - 1)
+          }
+        >
+          ◀
+        </button>
+
+        <span>
+          Page {currentPage} / {totalPages}
+        </span>
+
+        <button
+          disabled={
+            currentPage === totalPages
+          }
+          onClick={() =>
+            setCurrentPage((p) => p + 1)
+          }
+        >
+          ▶
+        </button>
+      </div>
     </div>
   );
 }
