@@ -15,7 +15,14 @@ export function useOptimizerStore() {
   const [swexData, setSwexData] = useState<any>(null);
 
   const [results, setResults] =
-    useState<OptimizationResult[]>([]);
+    useState<
+      {
+        monsterId: number;
+        monsterName: string;
+        results: OptimizationResult[];
+      }[]
+    >([]);
+
 
   const runeSetNames: Record<number, string> = {
     1: "Fatal",
@@ -112,6 +119,18 @@ const mainStatNames: Record<number, string> = {
     const slot6Main =
       mainStatNames[slot6Rune?.pri_eff?.[0]] ?? "";
 
+      console.log(
+        "MONSTER IMPORT",
+        {
+          name: swexMonster.name,
+          unitId: swexMonster.unitId,
+          sets: activeSets,
+          slot2: slot2Main,
+          slot4: slot4Main,
+          slot6: slot6Main,
+        }
+      );
+
     const config: MonsterConfig = {
       monsterId: id,
       stats: {},
@@ -129,8 +148,16 @@ const mainStatNames: Record<number, string> = {
     };
 
 
-    setMonsters((prev) => [...prev, monster]);
+    setMonsters((prev) => {
+      const next = [...prev, monster];
 
+      console.log(
+        "MONSTERS COUNT",
+        next.length
+      );
+
+      return next;
+    });
     setConfigs((prev) => ({
       ...prev,
       [id]: config,
@@ -161,6 +188,11 @@ const mainStatNames: Record<number, string> = {
     monsterId: number,
     configUpdate: Partial<MonsterConfig>
   ) => {
+      console.log(
+      "UPDATE CONFIG",
+      monsterId,
+      configUpdate
+      );
     setConfigs((prev) => ({
       ...prev,
       [monsterId]: {

@@ -1,72 +1,88 @@
-import type { OptimizationResult }
-  from "../../types/OptimizationResult";
+import MonsterResultsTable from "./MonsterResultsTable";
+import { useState } from "react";
 
 interface Props {
-  results: OptimizationResult[];
+  results: any[];
+  configs: Record<number, any>;
 }
 
 export default function ResultsPanel({
   results,
+  configs,
 }: Props) {
+    console.log(
+      "RESULTS PANEL RENDER",
+      results.length
+    );
+console.log("INIT VISIBLE COLUMNS");
+const [visibleColumns, setVisibleColumns] = useState({
+  sets: true,
+  hp: false,
+  atk: false,
+  def: false,
+  spd: false,
+  cr: false,
+  cd: false,
+  acc: false,
+  res: false,
+  ehp: false,
+  slots: true,
+});
+
+
+  if (results.length === 0) {
+    return null;
+  }
+
   return (
-    <div className="card">
+    <div className="card results-card">
       <h2>Results</h2>
 
-      {results.length === 0 ? (
-        <div className="results-placeholder">
-          Aucun résultat pour le moment.
-        </div>
-      ) : (
-        <div className="results-table-container">
-          <table className="results-table">
-            <thead>
-              <tr>
-                <th>#</th>
-                <th>Sets</th>
-                <th>HP</th>
-                <th>ATK</th>
-                <th>DEF</th>
-                <th>SPD</th>
-                <th>CR</th>
-                <th>CD</th>
-                <th>ACC</th>
-                <th>RES</th>
-                <th>EHP</th>
-                <th>2/4/6</th>
-              </tr>
-            </thead>
+      <div className="column-filters">
+        {Object.entries(visibleColumns).map(([key, value]) => (
+          <label key={key}>
+            <input
+              type="checkbox"
+              checked={value}
+              onChange={() =>
+                setVisibleColumns((prev) => ({
+                  ...prev,
+                  [key]:!value,
+                }))
+              }
+            />
+            {key.toUpperCase()}
+          </label>
+        ))}
+      </div>
 
-            <tbody>
-              {results.map((result, index) => (
-                <tr key={index}>
-                  <td>{index + 1}</td>
+      <div className="monster-results-grid">
+        {results.map((monsterResult) => {
+          console.log(
+            "RENDER RESULT",
+            monsterResult.monsterName
+          );
 
-                  <td>{result.sets.join(", ")}</td>
+          return (
+            <div
+              key={monsterResult.monsterId}
+              className="monster-results-section"
+            >
+              <div className="results-header">
+                <h3>{monsterResult.monsterName}</h3>
+                <span>
+                  {monsterResult.results.length} builds
+                </span>
+              </div>
 
-                  <td>{result.hp}</td>
-                  <td>{result.atk}</td>
-                  <td>{result.def}</td>
-
-                  <td className="spd-cell">
-                    {result.spd}
-                  </td>
-
-                  <td>{result.cr}</td>
-                  <td>{result.cd}</td>
-                  <td>{result.acc}</td>
-                  <td>{result.res}</td>
-
-                  <td>{Math.round(result.ehp)}</td>
-
-                  <td>
-                    {result.slot2}, {result.slot4}, {result.slot6}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
+              <MonsterResultsTable
+                results={monsterResult.results}
+                visibleColumns={visibleColumns}
+              />
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 }

@@ -145,26 +145,68 @@ export default function TeamOptimizerPage() {
 
           <button>Save</button>
          <button
-           onClick={() => {
-             const results = store.monsters.flatMap((monster) => {
+         onClick={() => {
+console.time("OPTIMIZE TEAM");
+console.log("START OPTIMIZE");
+           console.log(
+             "STOCK RUNES",
+             store.swexData?.runes?.length
+           );
+
+           console.log(
+             "MONSTER RUNES",
+             store.swexData?.unit_list?.reduce(
+               (sum: number, unit: any) =>
+                 sum + (unit.runes?.length ?? 0),
+               0
+             )
+           );
+
+           const allRunes = [
+             ...(store.swexData?.runes ?? []),
+             ...(store.swexData?.unit_list?.flatMap(
+               (unit: any) => unit.runes ?? []
+             ) ?? []),
+           ];
+       console.log("ALL RUNES", allRunes.length);
+
+           const results = store.monsters
+             .filter((monster) => store.configs[monster.id])
+             .map((monster) => {
                const config = store.configs[monster.id];
+console.log(
+  "OPTIMIZING",
+  monster.name
+);
+               const monsterResults =
+                 optimizeMonsterRunes(
+                   monster,
+                   config,
+                   allRunes
+                 );
 
-               if (!config) {
-                 return [];
-               }
-
-               return optimizeMonsterRunes(
-                 monster,
-                 config,
-                 store.swexData?.runes ?? []
+               console.log(
+                 "DONE",
+                 monster.name,
+                 monsterResults.length
                );
 
+               return {
+                 monsterId: monster.id,
+                 monsterName: monster.name,
+                 results: monsterResults,
+               };
              });
-             store.setResults(results);
+
+           store.setResults(results);
+           console.timeEnd("OPTIMIZE TEAM");
+           console.log(
+             "ALL MONSTERS DONE"
+           );
            }}
-         >
-           Optimize Team
-         </button>
+           >
+             Optimize Team
+           </button>
         </div>
       </header>
 
@@ -267,6 +309,7 @@ export default function TeamOptimizerPage() {
 
       <ResultsPanel
         results={store.results}
+        configs={store.configs}
       />
     </div>
   );

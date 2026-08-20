@@ -36,13 +36,6 @@ export function passesSlotFilters(
           slot6Main
         );
 
-        console.log(
-          "CONFIG",
-          config.slot2MainStats,
-          config.slot4MainStats,
-          config.slot6MainStats
-        );
-
   if (
     config.slot2MainStats.length > 0 &&
     !config.slot2MainStats.includes(slot2Main)
