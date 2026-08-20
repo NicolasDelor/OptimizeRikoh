@@ -179,6 +179,18 @@ export default function TeamMonsterCard({
       "DEF Flat",
     ];
 
+const focusStats = [
+  "spd",
+  "hp",
+  "atk",
+  "def",
+  "cr",
+  "cd",
+  "acc",
+  "res",
+  "ehp",
+];
+
   return (
     <div className="card">
       <div className="monster-card-actions">
@@ -239,7 +251,76 @@ export default function TeamMonsterCard({
            />
          </div>
 
+<div className="monster-runes-configuration">
+           <div className="rune-filter-row">
+             <span>FOCUS 1</span>
 
+             <select
+               value={config.focus?.[0] ?? "spd"}
+               onChange={(e) =>
+                 onConfigChange?.({
+                   focus: [
+                     e.target.value,
+                     config.focus?.[1] ?? "acc",
+                     config.focus?.[2] ?? "ehp",
+                   ],
+                 })
+               }
+             >
+               {focusStats.map((stat) => (
+                 <option key={stat} value={stat}>
+                   {stat.toUpperCase()}
+                 </option>
+               ))}
+             </select>
+           </div>
+
+           <div className="rune-filter-row">
+             <span>FOCUS 2</span>
+
+             <select
+               value={config.focus?.[1] ?? "acc"}
+               onChange={(e) =>
+                 onConfigChange?.({
+                   focus: [
+                     config.focus?.[0] ?? "spd",
+                     e.target.value,
+                     config.focus?.[2] ?? "ehp",
+                   ],
+                 })
+               }
+             >
+               {focusStats.map((stat) => (
+                 <option key={stat} value={stat}>
+                   {stat.toUpperCase()}
+                 </option>
+               ))}
+             </select>
+           </div>
+
+           <div className="rune-filter-row">
+             <span>FOCUS 3</span>
+
+             <select
+               value={config.focus?.[2] ?? "ehp"}
+               onChange={(e) =>
+                 onConfigChange?.({
+                   focus: [
+                     config.focus?.[0] ?? "spd",
+                     config.focus?.[1] ?? "acc",
+                     e.target.value,
+                   ],
+                 })
+               }
+             >
+               {focusStats.map((stat) => (
+                 <option key={stat} value={stat}>
+                   {stat.toUpperCase()}
+                 </option>
+               ))}
+             </select>
+           </div>
+         </div>
 
          <div
            className="config-summary-button"

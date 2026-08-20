@@ -134,19 +134,27 @@ const mainStatNames: Record<number, string> = {
     const config: MonsterConfig = {
       monsterId: id,
       stats: {},
+
       requiredSets: [
         activeSets[0] ?? "",
         activeSets[1] ?? "",
         activeSets[2] ?? "",
       ],
-        forbiddenSets: [],
+
+      forbiddenSets: [],
 
       slot2MainStats: slot2Main ? [slot2Main] : [],
       slot4MainStats: slot4Main ? [slot4Main] : [],
       slot6MainStats: slot6Main ? [slot6Main] : [],
-      speedOrder: 1,
-    };
 
+      speedOrder: 1,
+
+      focus: [
+        "spd",
+        "acc",
+        "ehp",
+      ],
+    };
 
     setMonsters((prev) => {
       const next = [...prev, monster];
@@ -188,18 +196,17 @@ const mainStatNames: Record<number, string> = {
     monsterId: number,
     configUpdate: Partial<MonsterConfig>
   ) => {
-      console.log(
-      "UPDATE CONFIG",
-      monsterId,
-      configUpdate
-      );
-    setConfigs((prev) => ({
-      ...prev,
-      [monsterId]: {
+    setConfigs((prev) => {
+      const nextConfig = {
         ...prev[monsterId],
         ...configUpdate,
-      },
-    }));
+      };
+
+      return {
+        ...prev,
+        [monsterId]: nextConfig
+        };
+    });
   };
 
   return {
