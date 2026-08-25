@@ -15,33 +15,20 @@ export function getRunesForMode(
 
   const allRunes = [
     ...(swexData.runes ?? []),
-    ...((swexData.unit_list ?? []).flatMap(
-      (unit: any) => unit.runes ?? []
-    )),
+    ...(swexData.unit_list ?? []).flatMap((unit: any) => unit.runes ?? []),
   ];
 
-  const runeMap = new Map(
-    allRunes.map(
-      (rune: any) => [rune.rune_id, rune]
-    )
-  );
+  const runeMap = new Map(allRunes.map((rune: any) => [rune.rune_id, rune]));
 
-if (importMode === "RTA") {
-  const rtaRunes =
-    swexData.world_arena_rune_equip_list
-      ?.filter(
-        (r: any) =>
-          r.occupied_id === monster.unitId
-      )
-      .map(
-        (r: any) =>
-          runeMap.get(r.rune_id)
-      )
-      .filter(Boolean) ?? [];
+  if (importMode === "RTA") {
+    const rtaRunes =
+      swexData.world_arena_rune_equip_list
+        ?.filter((r: any) => r.occupied_id === monster.unitId)
+        .map((r: any) => runeMap.get(r.rune_id))
+        .filter(Boolean) ?? [];
 
-  return rtaRunes;
-}
-
+    return rtaRunes;
+  }
 
   if (importMode === "SIEGE") {
     const decks = Object.values(

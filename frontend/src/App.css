@@ -182,4 +182,68 @@
     border-right-color: var(--border);
   }
 }
+.focus-panel {
+  background: #08111f;
+  border: 1px solid #1d2d44;
+  padding: 12px;
+  margin: 12px 0;
+}
 
+.focus-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.focus-title {
+  color: #ff9f1c;
+  font-size: 1.3rem;
+  font-weight: 600;
+}
+
+.focus-clear {
+  background: #220000;
+  border: 1px solid #660000;
+  color: white;
+  padding: 6px 10px;
+  cursor: pointer;
+}
+
+.focus-row {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.focus-select {
+  flex: 1;
+  background: #020b19;
+  border: 1px solid #ff9f1c;
+  color: white;
+  padding: 8px;
+}
+
+.focus-delete {
+  width: 40px;
+  background: #220000;
+  border: 1px solid #660000;
+  color: white;
+  cursor: pointer;
+}
+
+.focus-add {
+  width: 100%;
+  margin-top: 8px;
+  background: #020b19;
+  border: 1px solid #ff9f1c;
+  color: #ff9f1c;
+  padding: 10px;
+  cursor: pointer;
+}
+
+.focus-add:hover,
+.focus-delete:hover,
+.focus-clear:hover {
+  opacity: 0.9;
+}

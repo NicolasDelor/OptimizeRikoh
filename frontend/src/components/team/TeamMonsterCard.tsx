@@ -1,11 +1,14 @@
 import { useState } from "react";
 import type { Monster } from "../../types/Monster";
-import { getRuneBonus, getSetBonus, getStatValue } from "../../services/statCalculator";
+import {
+  getRuneBonus,
+  getSetBonus,
+  getStatValue,
+} from "../../services/statCalculator";
 import { getRunesForMode } from "../../services/runeModeService";
 import { getActiveSets } from "../../services/statCalculator";
 import { runeSetIcons } from "../../data/runeSetIcons";
 import { runeSetNames, mainStatNames } from "../../data/runeData";
-
 
 interface Props {
   monster?: Monster;
@@ -35,30 +38,25 @@ export default function TeamMonsterCard({
 
   const [showMainStats, setShowMainStats] = useState(false);
 
-  const runes = getRunesForMode(
-    monster,
-    importMode,
-    swexData
-  );
+  const [showFocus, setShowFocus] = useState(false);
 
-    const importedSets = getActiveSets(runes)
-      .map((setId) => runeSetNames[setId])
-      .filter(Boolean);
+  const runes = getRunesForMode(monster, importMode, swexData);
 
-    const importedSlot2 =
-      mainStatNames[
-        runes.find((r: any) => r.slot_no === 2)?.pri_eff?.[0]
-      ] ?? "";
+  const importedSets = getActiveSets(runes)
+    .map((setId) => runeSetNames[setId])
+    .filter(Boolean);
 
-    const importedSlot4 =
-      mainStatNames[
-        runes.find((r: any) => r.slot_no === 4)?.pri_eff?.[0]
-      ] ?? "";
+  const importedSlot2 =
+    mainStatNames[runes.find((r: any) => r.slot_no === 2)?.pri_eff?.[0]] ?? "";
 
-    const importedSlot6 =
-      mainStatNames[
-        runes.find((r: any) => r.slot_no === 6)?.pri_eff?.[0]
-      ] ?? "";
+  const importedSlot4 =
+    mainStatNames[runes.find((r: any) => r.slot_no === 4)?.pri_eff?.[0]] ?? "";
+
+  const importedSlot6 =
+    mainStatNames[runes.find((r: any) => r.slot_no === 6)?.pri_eff?.[0]] ?? "";
+
+  const [focusSearch, setFocusSearch] = useState("");
+  const [showFocusList, setShowFocusList] = useState(false);
 
   const getCurrentSpd = () =>
     getRuneBonus(runes, 8) + getSetBonus(runes, "spd");
@@ -124,73 +122,83 @@ export default function TeamMonsterCard({
     },
   ];
 
-    const runeSets = [
-      "Violent",
-      "Will",
-      "Swift",
-      "Despair",
-      "Rage",
-      "Blade",
-      "Focus",
-      "Guard",
-      "Nemesis",
-      "Revenge",
-      "Destroy",
-      "Shield",
-      "Endure",
-      "Fight",
-      "Determination",
-      "Enhance",
-      "Accuracy",
-      "Tolerance",
-      "Seal",
-      "Intangible",
-    ];
+  const runeSets = [
+    "Violent",
+    "Will",
+    "Swift",
+    "Despair",
+    "Rage",
+    "Blade",
+    "Focus",
+    "Guard",
+    "Nemesis",
+    "Revenge",
+    "Destroy",
+    "Shield",
+    "Endure",
+    "Fight",
+    "Determination",
+    "Enhance",
+    "Accuracy",
+    "Tolerance",
+    "Seal",
+    "Intangible",
+  ];
 
-    const slot2MainStats = [
-      "SPD",
-      "HP%",
-      "ATK%",
-      "DEF%",
-      "HP Flat",
-      "ATK Flat",
-      "DEF Flat",
-    ];
+  const slot2MainStats = [
+    "SPD",
+    "HP%",
+    "ATK%",
+    "DEF%",
+    "HP Flat",
+    "ATK Flat",
+    "DEF Flat",
+  ];
 
-    const slot4MainStats = [
-      "HP%",
-      "ATK%",
-      "DEF%",
-      "CR",
-      "CD",
-      "HP Flat",
-      "ATK Flat",
-      "DEF Flat",
-    ];
+  const slot4MainStats = [
+    "HP%",
+    "ATK%",
+    "DEF%",
+    "CR",
+    "CD",
+    "HP Flat",
+    "ATK Flat",
+    "DEF Flat",
+  ];
 
-    const slot6MainStats = [
-      "HP%",
-      "ATK%",
-      "DEF%",
-      "ACC",
-      "RES",
-      "HP Flat",
-      "ATK Flat",
-      "DEF Flat",
-    ];
+  const slot6MainStats = [
+    "HP%",
+    "ATK%",
+    "DEF%",
+    "ACC",
+    "RES",
+    "HP Flat",
+    "ATK Flat",
+    "DEF Flat",
+  ];
 
-const focusStats = [
-  "spd",
-  "hp",
-  "atk",
-  "def",
-  "cr",
-  "cd",
-  "acc",
-  "res",
-  "ehp",
-  "efficiency",
-];
+  const focusStats = [
+    "spd",
+    "hp",
+    "atk",
+    "def",
+    "cr",
+    "cd",
+    "acc",
+    "res",
+    "ehp",
+    "efficiency",
+  ];
+
+  const focusList = Array.isArray(config.focus) ? config.focus : ["spd"];
+
+  const MAX_FOCUS = 5;
+
+  const filteredFocusStats = focusStats.filter(
+    (stat) =>
+      !focusList.includes(stat) &&
+      stat.toLowerCase().includes(focusSearch.toLowerCase())
+  );
 
   return (
     <div className="card">
@@ -216,296 +224,283 @@ const focusStats = [
         </div>
 
         <div>
-           <div className="monster-name">{monster.name}</div>
+          <div className="monster-name">{monster.name}</div>
 
-           <div className="monster-rune-sets">
-             {getActiveSets(runes).map((setId, index) => (
-               <img
-                 key={`${setId}-${index}`}
-                 src={runeSetIcons[setId]}
-                 alt={setId}
-                 className="rune-set-icon"
-               />
-             ))}
-           </div>
-         </div>
+          <div className="monster-rune-sets">
+            {getActiveSets(runes).map((setId, index) => (
+              <img
+                key={`${setId}-${index}`}
+                src={runeSetIcons[setId]}
+                alt={setId}
+                className="rune-set-icon"
+              />
+            ))}
+          </div>
+        </div>
+      </div>
 
-         </div>
+      <div className="move-order-container">
+        <label className="move-order-label">Move Order</label>
 
-         <div className="move-order-container">
-           <label className="move-order-label">
-             Move Order
-           </label>
+        <input
+          className="move-order-input"
+          type="text"
+          inputMode="numeric"
+          value={config.speedOrder ?? ""}
+          onChange={(e) => {
+            const value = Number(e.target.value);
 
-           <input
-             className="move-order-input"
-             type="text"
-             inputMode="numeric"
-             value={config.speedOrder ?? ""}
-             onChange={(e) => {
-               const value = Number(e.target.value);
+            if (!Number.isNaN(value) && value >= 1) {
+              onSpeedOrderChange?.(value);
+            }
+          }}
+        />
+      </div>
 
-               if (!Number.isNaN(value) && value >= 1) {
-                 onSpeedOrderChange?.(value);
-               }
-             }}
-           />
-         </div>
+      <div
+        className="config-summary-button"
+        onClick={() => setShowFocus(!showFocus)}
+      >
+        <span>{showFocus ? "▼" : "▶"} Focus</span>
 
-<div className="monster-runes-configuration">
-           <div className="rune-filter-row">
-             <span>FOCUS 1</span>
+        <span className="config-summary-value">
+          {focusList.length
+            ? focusList.map((f) => f.toUpperCase()).join(" / ")
+            : "Any"}
+        </span>
+      </div>
 
-             <select
-               value={config.focus?.[0] ?? "spd"}
-               onChange={(e) =>
-                 onConfigChange?.({
-                   focus: [
-                     e.target.value,
-                     config.focus?.[1] ?? "acc",
-                     config.focus?.[2] ?? "ehp",
-                   ],
-                 })
-               }
-             >
-               {focusStats.map((stat) => (
-                 <option key={stat} value={stat}>
-                   {stat.toUpperCase()}
-                 </option>
-               ))}
-             </select>
-           </div>
+      {showFocus && (
+        <div className="focus-panel">
 
-           <div className="rune-filter-row">
-             <span>FOCUS 2</span>
-
-             <select
-               value={config.focus?.[1] ?? "acc"}
-               onChange={(e) =>
-                 onConfigChange?.({
-                   focus: [
-                     config.focus?.[0] ?? "spd",
-                     e.target.value,
-                     config.focus?.[2] ?? "ehp",
-                   ],
-                 })
-               }
-             >
-               {focusStats.map((stat) => (
-                 <option key={stat} value={stat}>
-                   {stat.toUpperCase()}
-                 </option>
-               ))}
-             </select>
-           </div>
-
-           <div className="rune-filter-row">
-             <span>FOCUS 3</span>
-
-             <select
-               value={config.focus?.[2] ?? "ehp"}
-               onChange={(e) =>
-                 onConfigChange?.({
-                   focus: [
-                     config.focus?.[0] ?? "spd",
-                     config.focus?.[1] ?? "acc",
-                     e.target.value,
-                   ],
-                 })
-               }
-             >
-               {focusStats.map((stat) => (
-                 <option key={stat} value={stat}>
-                   {stat.toUpperCase()}
-                 </option>
-               ))}
-             </select>
-           </div>
-         </div>
-
-         <div
-           className="config-summary-button"
-           onClick={() => setShowSets(!showSets)}
-         >
-           <span>
-             {showSets ? "▼" : "▶"} Sets
-           </span>
-
-           <span className="config-summary-value">
-             {importedSets.join(" / ") || "Any"}
-
-           </span>
-         </div>
-
-
-
-         {showSets && (
-                    <div className="monster-runes-configuration">
-                      <div className="rune-filter-row">
-                        <span>SET 1</span>
-
-                        <select
-                          value={config.requiredSets?.[0] || importedSets[0] || ""}
-                          onChange={(e) =>
-                            onConfigChange?.({
-                              requiredSets: [
-                                e.target.value,
-                                config.requiredSets?.[1] ?? "",
-                                config.requiredSets?.[2] ?? "",
-                              ],
-                            })
-                          }
-                        >
-                          <option value="">Any</option>
-
-                          {runeSets.map((set) => (
-                            <option key={set}>
-                              {set}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-
-                      <div className="rune-filter-row">
-                        <span>SET 2</span>
-
-                        <select
-                         value={config.requiredSets?.[1] || importedSets[1] || ""}
-                         onChange={(e) =>
-                           onConfigChange?.({
-                             requiredSets: [
-                               config.requiredSets?.[0] ?? "",
-                               e.target.value,
-                               config.requiredSets?.[2] ?? "",
-                             ],
-                           })
-                         }
-
-                       >
-                          <option value="">Any</option>
-
-                          {runeSets.map((set) => (
-                            <option key={set}>
-                              {set}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-
-                      <div className="rune-filter-row">
-                        <span>SET 3</span>
-
-                        <select
-                          value={config.requiredSets?.[2] || importedSets[2] || ""}
-                          onChange={(e) =>
-                            onConfigChange?.({
-                              requiredSets: [
-                                config.requiredSets?.[0] ?? "",
-                                config.requiredSets?.[1] ?? "",
-                                e.target.value,
-                              ],
-                            })
-                          }
-                        >
-                          <option value="">Any</option>
-
-                          {runeSets.map((set) => (
-                            <option key={set}>
-                              {set}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-                    </div>
-                  )}
-              <div
-                className="config-summary-button"
-                onClick={() => setShowMainStats(!showMainStats)}
+          <div className="focus-selected">
+            {focusList.map((focus, index) => (
+              <button
+                key={index}
+                type="button"
+                className="focus-tag"
+                onClick={() =>
+                  onConfigChange?.({
+                    focus: focusList.filter((_, i) => i !== index),
+                  })
+                }
               >
-                <span>
-                  {showMainStats ? "▼" : "▶"} Slots
-                </span>
+                ✕ {focus.toUpperCase()}
+              </button>
+            ))}
 
-                <span className="config-summary-value">
-                  {[
-                    config.slot2MainStats?.[0] || importedSlot2,
-                    config.slot4MainStats?.[0] || importedSlot4,
-                    config.slot6MainStats?.[0] || importedSlot6,
-                  ]
-                    .filter(Boolean)
-                    .join(" / ") || "Any"}
-                </span>
+            {focusList.length > 0 && (
+
+                Clear
+              </button>
+            )}
+          </div>
+
+          <div className="focus-dropdown-container">
+            <input
+              className="focus-search"
+              type="text"
+              placeholder="Choose up to 5 priority stats"
+              value={focusSearch}
+              onFocus={() => setShowFocusList(true)}
+              onBlur={() => setTimeout(() => setShowFocusList(false), 150)}
+              onChange={(e) => setFocusSearch(e.target.value)}
+            />
+            {showFocusList && filteredFocusStats.length > 0 && (
+              <div className="focus-options">
+                {filteredFocusStats.map((stat) => (
+                  <div
+                    key={stat}
+                    className="focus-option"
+                    onClick={() => {
+                      if (focusList.length >= MAX_FOCUS) {
+                        return;
+                      }
+
+                      onConfigChange?.({
+                        focus: [...focusList, stat],
+                      });
+
+                      setFocusSearch("");
+                      setShowFocusList(false);
+                    }}
+                  >
+                    {stat.toUpperCase()}
+                  </div>
+                ))}
               </div>
+            )}
+          </div>
+        </div>
+      )}
 
-         {showMainStats && (
-           <div className="monster-runes-configuration">
-             <div className="rune-filter-row">
-               <span>SLOT 1</span>
+      <div
+        className="config-summary-button"
+        onClick={() => setShowSets(!showSets)}
+      >
+        <span>{showSets ? "▼" : "▶"} Sets</span>
 
-               <select
-                 value={config.slot2MainStats?.[0] || importedSlot2}
-                 onChange={(e) =>
-                   onConfigChange?.({
-                     slot2MainStats: [e.target.value],
-                   })
-                 }
-               >
-                 <option value="">Any</option>
+        <span className="config-summary-value">
+          {importedSets.join(" / ") || "Any"}
+        </span>
+      </div>
 
-                 {slot2MainStats.map((stat) => (
-                   <option key={stat}>
-                     {stat}
-                   </option>
-                 ))}
-               </select>
-             </div>
+      {showSets && (
+        <div className="monster-runes-configuration">
+          <div className="rune-filter-row">
+            <span>SET 1</span>
 
-             <div className="rune-filter-row">
-               <span>SLOT 2</span>
+            <select
+              value={config.requiredSets?.[0] || importedSets[0] || ""}
+              onChange={(e) =>
+                onConfigChange?.({
+                  requiredSets: [
+                    e.target.value,
+                    config.requiredSets?.[1] ?? "",
+                    config.requiredSets?.[2] ?? "",
+                  ],
+                })
+              }
+            >
+              <option value="">Any</option>
 
-               <select
-                 value={config.slot4MainStats?.[0] || importedSlot4}
-                 onChange={(e) =>
-                   onConfigChange?.({
-                     slot4MainStats: [e.target.value],
-                   })
-                 }
-               >
-                 <option value="">Any</option>
+              {runeSets.map((set) => (
+                <option key={set} value={set}>
+                  {set}
+                </option>
+              ))}
+            </select>
+          </div>
 
-                 {slot4MainStats.map((stat) => (
-                   <option key={stat}>
-                     {stat}
-                   </option>
-                 ))}
-               </select>
-             </div>
+          <div className="rune-filter-row">
+            <span>SET 2</span>
 
-             <div className="rune-filter-row">
-               <span>SLOT 3</span>
+            <select
+              value={config.requiredSets?.[1] || importedSets[1] || ""}
+              onChange={(e) =>
+                onConfigChange?.({
+                  requiredSets: [
+                    config.requiredSets?.[0] ?? "",
+                    e.target.value,
+                    config.requiredSets?.[2] ?? "",
+                  ],
+                })
+              }
+            >
+              <option value="">Any</option>
 
-               <select
-                 value={config.slot6MainStats?.[0] || importedSlot6}
-                 onChange={(e) =>
-                   onConfigChange?.({
-                     slot6MainStats: [e.target.value],
-                   })
-                 }
+              {runeSets.map((set) => (
+                <option key={set} value={set}>
+                  {set}
+                </option>
+              ))}
+            </select>
+          </div>
 
-               >
-                 <option value="">Any</option>
+          <div className="rune-filter-row">
+            <span>SET 3</span>
 
-                 {slot6MainStats.map((stat) => (
-                   <option key={stat}>
-                     {stat}
-                   </option>
-                 ))}
-               </select>
-             </div>
-           </div>
-         )}
+            <select
+              value={config.requiredSets?.[2] || importedSets[2] || ""}
+              onChange={(e) =>
+                onConfigChange?.({
+                  requiredSets: [
+                    config.requiredSets?.[0] ?? "",
+                    config.requiredSets?.[1] ?? "",
+                    e.target.value,
+                  ],
+                })
+              }
+            >
+              <option value="">Any</option>
 
+              {runeSets.map((set) => (
+                <option key={set} value={set}>
+                  {set}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+      )}
 
+      <div
+        className="config-summary-button"
+        onClick={() => setShowMainStats(!showMainStats)}
+      >
+        <span>{showMainStats ? "▼" : "▶"} Slots</span>
+
+        <span className="config-summary-value">
+          {[
+            config.slot2MainStats?.[0] || importedSlot2,
+            config.slot4MainStats?.[0] || importedSlot4,
+            config.slot6MainStats?.[0] || importedSlot6,
+          ]
+            .filter(Boolean)
+            .join(" / ") || "Any"}
+        </span>
+      </div>
+
+      {showMainStats && (
+        <div className="monster-runes-configuration">
+          <div className="rune-filter-row">
+            <span>SLOT 2</span>
+
+            <select
+              value={config.slot2MainStats?.[0] || importedSlot2}
+              onChange={(e) =>
+                onConfigChange?.({
+                  slot2MainStats: [e.target.value],
+                })
+              }
+            >
+              <option value="">Any</option>
+
+              {slot2MainStats.map((stat) => (
+                <option key={stat}>{stat}</option>
+              ))}
+            </select>
+          </div>
+
+          <div className="rune-filter-row">
+            <span>SLOT 4</span>
+
+            <select
+              value={config.slot4MainStats?.[0] || importedSlot4}
+              onChange={(e) =>
+                onConfigChange?.({
+                  slot4MainStats: [e.target.value],
+                })
+              }
+            >
+              <option value="">Any</option>
+
+              {slot4MainStats.map((stat) => (
+                <option key={stat}>{stat}</option>
+              ))}
+            </select>
+          </div>
+
+          <div className="rune-filter-row">
+            <span>SLOT 6</span>
+
+            <select
+              value={config.slot6MainStats?.[0] || importedSlot6}
+              onChange={(e) =>
+                onConfigChange?.({
+                  slot6MainStats: [e.target.value],
+                })
+              }
+            >
+              <option value="">Any</option>
+
+              {slot6MainStats.map((stat) => (
+                <option key={stat}>{stat}</option>
+              ))}
+            </select>
+          </div>
+        </div>
+      )}
 
       <div className="monster-stats">
         <div className="stats-header">
@@ -528,9 +523,7 @@ const focusStats = [
               className="stat-input"
               type="text"
               inputMode="numeric"
-              value={
-                config.stats?.[`${stat.key}Min`] ?? ""
-              }
+              value={config.stats?.[`${stat.key}Min`] ?? ""}
               onChange={(e) =>
                 onConfigChange?.({
                   stats: {
@@ -548,9 +541,7 @@ const focusStats = [
               className="stat-input"
               type="text"
               inputMode="numeric"
-              value={
-                config.stats?.[`${stat.key}Max`] ?? ""
-              }
+              value={config.stats?.[`${stat.key}Max`] ?? ""}
               onChange={(e) =>
                 onConfigChange?.({
                   stats: {

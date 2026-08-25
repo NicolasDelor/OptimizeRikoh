@@ -4,8 +4,7 @@ process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
 
 const monsters = [];
 
-let url =
-  "https://swarfarm.com/api/v2/monsters/?limit=5000";
+let url = "https://swarfarm.com/api/v2/monsters/?limit=5000";
 
 while (url) {
   console.log("Loading", url);
@@ -28,6 +27,4 @@ fs.writeFileSync(
   JSON.stringify(monsters, null, 2)
 );
 
-console.log(
-  `Saved ${monsters.length} monsters`
-);
+console.log(`Saved ${monsters.length} monsters`);

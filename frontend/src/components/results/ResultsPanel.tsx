@@ -6,30 +6,23 @@ interface Props {
   configs: Record<number, any>;
 }
 
-export default function ResultsPanel({
-  results,
-  configs,
-}: Props) {
-    console.log(
-      "RESULTS PANEL RENDER",
-      results.length
-    );
-console.log("INIT VISIBLE COLUMNS");
-const [visibleColumns, setVisibleColumns] = useState({
-  sets: true,
-  hp: false,
-  atk: false,
-  def: false,
-  spd: false,
-  cr: false,
-  cd: false,
-  acc: false,
-  res: false,
-  ehp: false,
-  efficiency: false,
-  slots: true,
-});
-
+export default function ResultsPanel({ results, configs }: Props) {
+  console.log("RESULTS PANEL RENDER", results.length);
+  console.log("INIT VISIBLE COLUMNS");
+  const [visibleColumns, setVisibleColumns] = useState({
+    sets: true,
+    hp: false,
+    atk: false,
+    def: false,
+    spd: false,
+    cr: false,
+    cd: false,
+    acc: false,
+    res: false,
+    ehp: false,
+    efficiency: false,
+    slots: true,
+  });
 
   if (results.length === 0) {
     return null;
@@ -48,7 +41,7 @@ const [visibleColumns, setVisibleColumns] = useState({
               onChange={() =>
                 setVisibleColumns((prev) => ({
                   ...prev,
-                  [key]:!value,
+                  [key]: !value,
                 }))
               }
             />
@@ -59,10 +52,7 @@ const [visibleColumns, setVisibleColumns] = useState({
 
       <div className="monster-results-grid">
         {results.map((monsterResult) => {
-          console.log(
-            "RENDER RESULT",
-            monsterResult.monsterName
-          );
+          console.log("RENDER RESULT", monsterResult.monsterName);
 
           return (
             <div

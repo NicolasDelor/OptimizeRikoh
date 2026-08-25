@@ -1,7 +1,4 @@
-import {
-  runeSetNames,
-  runeSetPieces,
-} from "../data/runeData";
+import { runeSetNames, runeSetPieces } from "../data/runeData";
 
 export function getRuneBonus(runes: any[], statType: number) {
   let total = 0;
@@ -100,31 +97,24 @@ export function getActiveSets(runes: any[]) {
       return;
     }
 
-    counts[setName] =
-      (counts[setName] ?? 0) + 1;
+    counts[setName] = (counts[setName] ?? 0) + 1;
   });
 
   const activeSets: string[] = [];
 
-  Object.entries(counts).forEach(
-    ([setName, count]) => {
-      const pieces = runeSetPieces[setName];
+  Object.entries(counts).forEach(([setName, count]) => {
+    const pieces = runeSetPieces[setName];
 
-      if (!pieces) {
-        return;
-      }
-
-      const completeSets = Math.floor(
-        count / pieces
-      );
-
-      for (let i = 0; i < completeSets; i++) {
-        activeSets.push(setName);
-      }
+    if (!pieces) {
+      return;
     }
-  );
+
+    const completeSets = Math.floor(count / pieces);
+
+    for (let i = 0; i < completeSets; i++) {
+      activeSets.push(setName);
+    }
+  });
 
   return activeSets;
 }
-
-

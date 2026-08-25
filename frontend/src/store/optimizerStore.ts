@@ -14,15 +14,13 @@ export function useOptimizerStore() {
 
   const [swexData, setSwexData] = useState<any>(null);
 
-  const [results, setResults] =
-    useState<
-      {
-        monsterId: number;
-        monsterName: string;
-        results: OptimizationResult[];
-      }[]
-    >([]);
-
+  const [results, setResults] = useState<
+    {
+      monsterId: number;
+      monsterName: string;
+      results: OptimizationResult[];
+    }[]
+  >([]);
 
   const runeSetNames: Record<number, string> = {
     1: "Fatal",
@@ -48,28 +46,24 @@ export function useOptimizerStore() {
     23: "Tolerance",
   };
 
-const mainStatNames: Record<number, string> = {
-  1: "HP Flat",
-  2: "HP%",
-  3: "ATK Flat",
-  4: "ATK%",
-  5: "DEF Flat",
-  6: "DEF%",
-  8: "SPD",
-  9: "CR",
-  10: "CD",
-  11: "RES",
-  12: "ACC",
-};
+  const mainStatNames: Record<number, string> = {
+    1: "HP Flat",
+    2: "HP%",
+    3: "ATK Flat",
+    4: "ATK%",
+    5: "DEF Flat",
+    6: "DEF%",
+    8: "SPD",
+    9: "CR",
+    10: "CD",
+    11: "RES",
+    12: "ACC",
+  };
 
   const addMonster = (monsterData: string) => {
     const swexMonster = JSON.parse(monsterData);
 
-    console.log(
-      "ADD MONSTER",
-      swexMonster.name,
-      swexMonster.unitId
-    );
+    console.log("ADD MONSTER", swexMonster.name, swexMonster.unitId);
 
     const id = Date.now();
 
@@ -116,20 +110,16 @@ const mainStatNames: Record<number, string> = {
 
     const slot4Main = mainStatNames[slot4Rune?.pri_eff?.[0]] ?? "";
 
-    const slot6Main =
-      mainStatNames[slot6Rune?.pri_eff?.[0]] ?? "";
+    const slot6Main = mainStatNames[slot6Rune?.pri_eff?.[0]] ?? "";
 
-      console.log(
-        "MONSTER IMPORT",
-        {
-          name: swexMonster.name,
-          unitId: swexMonster.unitId,
-          sets: activeSets,
-          slot2: slot2Main,
-          slot4: slot4Main,
-          slot6: slot6Main,
-        }
-      );
+    console.log("MONSTER IMPORT", {
+      name: swexMonster.name,
+      unitId: swexMonster.unitId,
+      sets: activeSets,
+      slot2: slot2Main,
+      slot4: slot4Main,
+      slot6: slot6Main,
+    });
 
     const config: MonsterConfig = {
       monsterId: id,
@@ -149,20 +139,13 @@ const mainStatNames: Record<number, string> = {
 
       speedOrder: 1,
 
-      focus: [
-        "spd",
-        "acc",
-        "ehp",
-      ],
+      focus: ["spd"],
     };
 
     setMonsters((prev) => {
       const next = [...prev, monster];
 
-      console.log(
-        "MONSTERS COUNT",
-        next.length
-      );
+      console.log("MONSTERS COUNT", next.length);
 
       return next;
     });
@@ -204,8 +187,8 @@ const mainStatNames: Record<number, string> = {
 
       return {
         ...prev,
-        [monsterId]: nextConfig
-        };
+        [monsterId]: nextConfig,
+      };
     });
   };
 

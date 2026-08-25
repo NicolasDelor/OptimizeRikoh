@@ -25,8 +25,6 @@ export interface MonsterConfig {
 
     resMin?: number;
     resMax?: number;
-
-
   };
 
   requiredSets: string[];
@@ -38,7 +36,7 @@ export interface MonsterConfig {
 
   speedOrder?: number;
 
-    focus?: string[];
+  focus?: string[];
 
   ehpMin?: number;
   efficiencyMin?: number;

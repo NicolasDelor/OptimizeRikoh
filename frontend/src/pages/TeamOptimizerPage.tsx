@@ -4,7 +4,11 @@ import ResultsPanel from "../components/results/ResultsPanel";
 import TeamMonsterCard from "../components/team/TeamMonsterCard";
 import { useOptimizerStore } from "../store/optimizerStore";
 import { loadSwarfarmMonsters } from "../services/swarfarmService";
-import { optimizeMonsterRunes, requestOptimizationStop, resetOptimizationStop } from "../services/optimizerEngine";
+import {
+  optimizeMonsterRunes,
+  requestOptimizationStop,
+  resetOptimizationStop,
+} from "../services/optimizerEngine";
 
 export default function TeamOptimizerPage() {
   const [swarfarmMonsters, setSwarfarmMonsters] = useState<Record<number, any>>(
@@ -121,7 +125,6 @@ export default function TeamOptimizerPage() {
     return orderA - orderB;
   });
 
-
   return (
     <div className="page">
       <header className="header">
@@ -144,87 +147,73 @@ export default function TeamOptimizerPage() {
           </button>
 
           <button>Save</button>
-         <button
-         onClick={() => {
-             resetOptimizationStop();
-console.time("OPTIMIZE TEAM");
-console.log("START OPTIMIZE");
-           console.log(
-             "STOCK RUNES",
-             store.swexData?.runes?.length
-           );
+          <button
+            onClick={() => {
+              resetOptimizationStop();
+              console.time("OPTIMIZE TEAM");
+              console.log("START OPTIMIZE");
+              console.log("STOCK RUNES", store.swexData?.runes?.length);
 
-           console.log(
-             "MONSTER RUNES",
-             store.swexData?.unit_list?.reduce(
-               (sum: number, unit: any) =>
-                 sum + (unit.runes?.length ?? 0),
-               0
-             )
-           );
+              console.log(
+                "MONSTER RUNES",
+                store.swexData?.unit_list?.reduce(
+                  (sum: number, unit: any) => sum + (unit.runes?.length ?? 0),
+                  0
+                )
+              );
 
-           const allRunes = [
-             ...(store.swexData?.runes ?? []),
-             ...(store.swexData?.unit_list?.flatMap(
-               (unit: any) => unit.runes ?? []
-             ) ?? []),
-           ];
-       console.log("ALL RUNES", allRunes.length);
-console.time("MAP_MONSTERS");
-           const results = store.monsters
-             .filter((monster) => store.configs[monster.id])
-             .map((monster) => {
-               const config = store.configs[monster.id];
-console.log(
-  "OPTIMIZING",
-  monster.name
-);
-               console.time(`OPT_${monster.name}`);
+              const allRunes = [
+                ...(store.swexData?.runes ?? []),
+                ...(store.swexData?.unit_list?.flatMap(
+                  (unit: any) => unit.runes ?? []
+                ) ?? []),
+              ];
+              console.log("ALL RUNES", allRunes.length);
+              console.time("MAP_MONSTERS");
+              const results = store.monsters
+                .filter((monster) => store.configs[monster.id])
+                .map((monster) => {
+                  const config = store.configs[monster.id];
+                  console.log("OPTIMIZING", monster.name);
+                  console.time(`OPT_${monster.name}`);
 
-               const monsterResults =
-                 optimizeMonsterRunes(
-                   monster,
-                   config,
-                   allRunes
-                 );
+                  const monsterResults = optimizeMonsterRunes(
+                    monster,
+                    config,
+                    allRunes
+                  );
 
-               console.timeEnd(`OPT_${monster.name}`);
-               ``
+                  console.timeEnd(`OPT_${monster.name}`);
+                  ``;
 
-               console.log(
-                 "DONE",
-                 monster.name,
-                 monsterResults.length
-               );
+                  console.log("DONE", monster.name, monsterResults.length);
 
-               return {
-                 monsterId: monster.id,
-                 monsterName: monster.name,
-                 results: monsterResults,
-               };
-             });
+                  return {
+                    monsterId: monster.id,
+                    monsterName: monster.name,
+                    results: monsterResults,
+                  };
+                });
 
-           console.time("SET_RESULTS");
+              console.time("SET_RESULTS");
 
-           store.setResults(results);
-           console.timeEnd("MAP_MONSTERS");
+              store.setResults(results);
+              console.timeEnd("MAP_MONSTERS");
 
-           console.timeEnd("SET_RESULTS");
-           console.timeEnd("OPTIMIZE TEAM");
-           console.log(
-             "ALL MONSTERS DONE"
-           );
-           }}
-           >
-             Optimize Team
-           </button>
-           <button
-             onClick={() => {
-               requestOptimizationStop();
-             }}
-           >
-             Stop
-           </button>
+              console.timeEnd("SET_RESULTS");
+              console.timeEnd("OPTIMIZE TEAM");
+              console.log("ALL MONSTERS DONE");
+            }}
+          >
+            Optimize Team
+          </button>
+          <button
+            onClick={() => {
+              requestOptimizationStop();
+            }}
+          >
+            Stop
+          </button>
         </div>
       </header>
 
@@ -325,10 +314,7 @@ console.log(
         </div>
       </div>
 
-      <ResultsPanel
-        results={store.results}
-        configs={store.configs}
-      />
+      <ResultsPanel results={store.results} configs={store.configs} />
     </div>
   );
 }
