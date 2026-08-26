@@ -23,24 +23,24 @@ export function getSetBonus(runes: any[], stat: string) {
     counts[rune.set_id] = (counts[rune.set_id] ?? 0) + 1;
   });
 
-let remainingIntangible = counts[24] ?? 0;
+  let remainingIntangible = counts[25] ?? 0;
 
-function completeSet(count: number, pieces: number) {
-  const complete = Math.floor(count / pieces);
+  function completeSet(count: number, pieces: number) {
+    const complete = Math.floor(count / pieces);
 
-  if (complete > 0) {
-    return complete;
+    if (complete > 0) {
+      return complete;
+    }
+
+    const missing = pieces - count;
+
+    if (missing > 0 && remainingIntangible >= missing) {
+      remainingIntangible -= missing;
+      return 1;
+    }
+
+    return 0;
   }
-
-  const missing = pieces - count;
-
-  if (missing > 0 && remainingIntangible >= missing) {
-    remainingIntangible -= missing;
-    return 1;
-  }
-
-  return 0;
-}
 
   let bonus = 0;
 
@@ -160,8 +160,8 @@ export function getActiveSets(runes: any[]) {
     }
   });
 
-if ((counts["Intangible"] ?? 0) > 0) {
-  activeSets.push("Intangible");
-}
+  if ((counts["Intangible"] ?? 0) > 0) {
+    activeSets.push("Intangible");
+  }
   return activeSets;
 }

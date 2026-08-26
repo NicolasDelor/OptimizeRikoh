@@ -53,6 +53,8 @@ export function optimizeMonsterRunes(
 ): OptimizationResult[] {
   const candidateRunes = availableRunes;
 
+  console.log("INTANGIBLE", runeSetNames[25], runeSetPieces["Intangible"]);
+
   /*
    * Règles métier :
    *
@@ -116,11 +118,13 @@ export function optimizeMonsterRunes(
 
   const filteredCandidateRunes =
     requiredPieces >= 6
-      ? candidateRunes.filter((r) =>
-          requiredSetNames.has(runeSetNames[r.set_id]) ||
-          runeSetNames[r.set_id] === "Intangible"
+      ? candidateRunes.filter(
+          (r) =>
+            requiredSetNames.has(runeSetNames[r.set_id]) ||
+            runeSetNames[r.set_id] === "Intangible"
         )
       : candidateRunes;
+
   for (const rune of filteredCandidateRunes) {
     rune.cachedSpd = getRuneBonus([rune], 8);
     rune.cachedCr = getRuneBonus([rune], 9);
@@ -450,12 +454,7 @@ export function optimizeMonsterRunes(
 
       const currentPieces = setCounts[requiredSet] ?? 0;
 
-      if (
-        currentPieces +
-          intangibleCount +
-          remainingSlots <
-        piecesNeeded
-      ) {
+      if (currentPieces + intangibleCount + remainingSlots < piecesNeeded) {
         return false;
       }
     }
@@ -558,10 +557,33 @@ export function optimizeMonsterRunes(
 
       const passesStats = passesStatFilters(stats, config);
 
+      if (
+        buildRunes[0]?.swopId === 1843 &&
+        buildRunes[1]?.swopId === 1589 &&
+        buildRunes[2]?.swopId === 2118 &&
+        buildRunes[3]?.swopId === 3372 &&
+        buildRunes[4]?.swopId === 2120 &&
+        buildRunes[5]?.swopId === 3013
+      ) {
+        console.log("SWOP BUILD STATS", stats);
+      }
+
       statFilterTime += performance.now() - statFilterStart;
 
-      if (!passesStats) return;
+      if (!passesStats) {
+        if (
+          buildRunes[0]?.swopId === 1843 &&
+          buildRunes[1]?.swopId === 1589 &&
+          buildRunes[2]?.swopId === 2118 &&
+          buildRunes[3]?.swopId === 3372 &&
+          buildRunes[4]?.swopId === 2120 &&
+          buildRunes[5]?.swopId === 3013
+        ) {
+          console.log("SWOP BUILD REJECTED BY STATS", stats);
+        }
 
+        return;
+      }
       const activeSets: string[] = [];
 
       const intangibleCount = setCounts["Intangible"] ?? 0;
@@ -626,11 +648,6 @@ export function optimizeMonsterRunes(
       const efficiency =
         stats.spd + stats.cr + stats.cd + stats.acc + stats.res;
 
-console.log(
-  "SETS",
-  activeSets,
-  completedRunes.map((r) => runeSetNames[r.set_id])
-);
       const result: OptimizationResult = {
         monsterId: monster.id,
 
@@ -666,6 +683,10 @@ console.log(
 
         score,
       };
+
+      if (result.runeIds.join(",") === "1843,1589,2118,3372,2120,3013") {
+        console.log("SWOP BUILD FOUND", result);
+      }
       results.push(result);
 
       return;
@@ -683,9 +704,31 @@ console.log(
         continue;
       }
       buildRunes[slotRunes[slotIndex].slot - 1] = rune;
+
+      const currentIds = buildRunes.filter(Boolean).map((r) => r.swopId);
+
+      if (
+        currentIds.includes(1843) &&
+        currentIds.includes(1589) &&
+        currentIds.includes(2118) &&
+        currentIds.includes(3372) &&
+        currentIds.includes(2120)
+      ) {
+        console.log("MISSING_LAST_RUNE", currentIds);
+      }
+
+      const ids = buildRunes
+        .filter(Boolean)
+        .map((r) => r.swopId)
+        .join(",");
+
       usedRuneIds.add(rune.rune_id);
 
       const setName = runeSetNames[rune.set_id];
+
+      if (rune.swopId === 3372) {
+        console.log("RUNE3372", rune.swopId, rune.slot_no, setName);
+      }
 
       if (setName) {
         setCounts[setName] = (setCounts[setName] ?? 0) + 1;
@@ -713,6 +756,17 @@ console.log(
 
       const remainingSlots = slotRunes.length - (slotIndex + 1);
 
+      if (
+        buildRunes[0]?.swopId === 1843 &&
+        buildRunes[1]?.swopId === 1589 &&
+        buildRunes[2]?.swopId === 2118 &&
+        buildRunes[3]?.swopId === 3372 &&
+        buildRunes[4]?.swopId === 2120 &&
+        buildRunes[5]?.swopId === 3013
+      ) {
+        console.log("SWOP REJECTED BY SETS");
+      }
+
       if (!canStillCompleteSets(setCounts, remainingSlots, requiredSets)) {
         if (setName) {
           setCounts[setName]--;
@@ -724,6 +778,17 @@ console.log(
 
         usedRuneIds.delete(rune.rune_id);
         continue;
+      }
+
+      if (
+        buildRunes[0]?.swopId === 1843 &&
+        buildRunes[1]?.swopId === 1589 &&
+        buildRunes[2]?.swopId === 2118 &&
+        buildRunes[3]?.swopId === 3372 &&
+        buildRunes[4]?.swopId === 2120 &&
+        buildRunes[5]?.swopId === 3013
+      ) {
+        console.log("SWOP REJECTED BY MINIMUMS");
       }
 
       if (
