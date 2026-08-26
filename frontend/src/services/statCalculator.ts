@@ -23,51 +23,43 @@ export function getSetBonus(runes: any[], stat: string) {
     counts[rune.set_id] = (counts[rune.set_id] ?? 0) + 1;
   });
 
+let remainingIntangible = counts[24] ?? 0;
+
+function completeSet(count: number, pieces: number) {
+  const complete = Math.floor(count / pieces);
+
+  if (complete > 0) {
+    return complete;
+  }
+
+  const missing = pieces - count;
+
+  if (missing > 0 && remainingIntangible >= missing) {
+    remainingIntangible -= missing;
+    return 1;
+  }
+
+  return 0;
+}
+
   let bonus = 0;
 
-  const energy = Math.floor((counts[4] ?? 0) / 2);
+  const fatal = completeSet(counts[1] ?? 0, 4);
+  const energy = completeSet(counts[2] ?? 0, 2);
+  const swift = completeSet(counts[3] ?? 0, 4);
+  const blade = completeSet(counts[4] ?? 0, 2);
+  const rage = completeSet(counts[5] ?? 0, 4);
+  const focus = completeSet(counts[6] ?? 0, 2);
+  const endure = completeSet(counts[7] ?? 0, 2);
+  const guard = completeSet(counts[8] ?? 0, 2);
 
-  const guard = Math.floor((counts[8] ?? 0) / 2);
-
-  const blade = Math.floor((counts[4] ?? 0) / 2);
-
-  const focus = Math.floor((counts[6] ?? 0) / 2);
-
-  const endure = Math.floor((counts[7] ?? 0) / 2);
-
-  const fatal = Math.floor((counts[1] ?? 0) / 4);
-
-  const swift = Math.floor((counts[3] ?? 0) / 4);
-
-  const rage = Math.floor((counts[5] ?? 0) / 4);
-
-  const fight = Math.floor((counts[19] ?? 0) / 2);
-
-  const determination = Math.floor((counts[20] ?? 0) / 2);
-
-  const enhance = Math.floor((counts[21] ?? 0) / 2);
-
-  const accuracy = Math.floor((counts[22] ?? 0) / 2);
-
-  const tolerance = Math.floor((counts[23] ?? 0) / 2);
+  const fight = completeSet(counts[19] ?? 0, 2);
+  const determination = completeSet(counts[20] ?? 0, 2);
+  const enhance = completeSet(counts[21] ?? 0, 2);
+  const accuracy = completeSet(counts[22] ?? 0, 2);
+  const tolerance = completeSet(counts[23] ?? 0, 2);
 
   switch (stat) {
-    case "hp":
-      bonus += energy * 15;
-      break;
-
-    case "atk":
-      bonus += fatal * 35;
-      break;
-
-    case "def":
-      bonus += guard * 15;
-      break;
-
-    case "spd":
-      bonus += swift * 25;
-      break;
-
     case "hp":
       bonus += energy * 15;
       bonus += enhance * 8;
@@ -139,19 +131,37 @@ export function getActiveSets(runes: any[]) {
 
   const activeSets: string[] = [];
 
+  let remainingIntangible = counts["Intangible"] ?? 0;
+
   Object.entries(counts).forEach(([setName, count]) => {
+    if (setName === "Intangible") {
+      return;
+    }
+
     const pieces = runeSetPieces[setName];
 
     if (!pieces) {
       return;
     }
 
-    const completeSets = Math.floor(count / pieces);
+    let completeSets = Math.floor(count / pieces);
+
+    if (completeSets === 0) {
+      const missing = pieces - count;
+
+      if (missing > 0 && remainingIntangible >= missing) {
+        completeSets = 1;
+        remainingIntangible -= missing;
+      }
+    }
 
     for (let i = 0; i < completeSets; i++) {
       activeSets.push(setName);
     }
   });
 
+if ((counts["Intangible"] ?? 0) > 0) {
+  activeSets.push("Intangible");
+}
   return activeSets;
 }

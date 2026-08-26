@@ -7,8 +7,6 @@ interface Props {
 }
 
 export default function ResultsPanel({ results, configs }: Props) {
-  console.log("RESULTS PANEL RENDER", results.length);
-  console.log("INIT VISIBLE COLUMNS");
   const [visibleColumns, setVisibleColumns] = useState({
     sets: true,
     hp: false,

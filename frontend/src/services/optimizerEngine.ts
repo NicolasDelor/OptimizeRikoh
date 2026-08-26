@@ -117,7 +117,8 @@ export function optimizeMonsterRunes(
   const filteredCandidateRunes =
     requiredPieces >= 6
       ? candidateRunes.filter((r) =>
-          requiredSetNames.has(runeSetNames[r.set_id])
+          requiredSetNames.has(runeSetNames[r.set_id]) ||
+          runeSetNames[r.set_id] === "Intangible"
         )
       : candidateRunes;
   for (const rune of filteredCandidateRunes) {
@@ -442,12 +443,19 @@ export function optimizeMonsterRunes(
     remainingSlots: number,
     requiredSets: string[]
   ) {
+    const intangibleCount = setCounts["Intangible"] ?? 0;
+
     for (const requiredSet of requiredSets.filter(Boolean)) {
       const piecesNeeded = runeSetPieces[requiredSet];
 
       const currentPieces = setCounts[requiredSet] ?? 0;
 
-      if (currentPieces + remainingSlots < piecesNeeded) {
+      if (
+        currentPieces +
+          intangibleCount +
+          remainingSlots <
+        piecesNeeded
+      ) {
         return false;
       }
     }
@@ -556,18 +564,38 @@ export function optimizeMonsterRunes(
 
       const activeSets: string[] = [];
 
-      for (const setName in setCounts) {
-        const count = setCounts[setName];
+      const intangibleCount = setCounts["Intangible"] ?? 0;
+      let remainingIntangible = intangibleCount;
+
+      Object.entries(setCounts).forEach(([setName, count]) => {
+        if (setName === "Intangible") {
+          return;
+        }
 
         const pieces = runeSetPieces[setName];
 
-        if (!pieces) continue;
+        if (!pieces) {
+          return;
+        }
 
-        const completeSets = Math.floor(count / pieces);
+        let effectiveCount = count;
+
+        const missing = Math.max(0, pieces - count);
+
+        if (missing > 0 && remainingIntangible >= missing) {
+          effectiveCount += missing;
+          remainingIntangible -= missing;
+        }
+
+        const completeSets = Math.floor(effectiveCount / pieces);
 
         for (let i = 0; i < completeSets; i++) {
           activeSets.push(setName);
         }
+      });
+
+      if (intangibleCount > 0) {
+        activeSets.push("Intangible");
       }
 
       const setFilterStart = performance.now();
@@ -598,6 +626,11 @@ export function optimizeMonsterRunes(
       const efficiency =
         stats.spd + stats.cr + stats.cd + stats.acc + stats.res;
 
+console.log(
+  "SETS",
+  activeSets,
+  completedRunes.map((r) => runeSetNames[r.set_id])
+);
       const result: OptimizationResult = {
         monsterId: monster.id,
 

@@ -20,6 +20,7 @@ export const runeSetNames: Record<number, string> = {
   21: "Enhance",
   22: "Accuracy",
   23: "Tolerance",
+  24: "Intangible",
 };
 
 export const mainStatNames: Record<number, string> = {
@@ -58,4 +59,5 @@ export const runeSetPieces: Record<string, number> = {
   Enhance: 2,
   Accuracy: 2,
   Tolerance: 2,
+  Intangible: 1,
 };
