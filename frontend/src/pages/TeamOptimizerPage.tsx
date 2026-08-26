@@ -168,6 +168,9 @@ export default function TeamOptimizerPage() {
                   (unit: any) => unit.runes ?? []
                 ) ?? []),
               ];
+              allRunes.forEach((rune, index) => {
+                rune.swopId = index + 1;
+              });
               console.log("ALL RUNES", allRunes.length);
               console.time("MAP_MONSTERS");
               const results = store.monsters

@@ -29,7 +29,7 @@ export function getSetBonus(runes: any[], stat: string) {
 
   const guard = Math.floor((counts[8] ?? 0) / 2);
 
-  const blade = Math.floor((counts[5] ?? 0) / 2);
+  const blade = Math.floor((counts[4] ?? 0) / 2);
 
   const focus = Math.floor((counts[6] ?? 0) / 2);
 
@@ -38,6 +38,18 @@ export function getSetBonus(runes: any[], stat: string) {
   const fatal = Math.floor((counts[1] ?? 0) / 4);
 
   const swift = Math.floor((counts[3] ?? 0) / 4);
+
+  const rage = Math.floor((counts[5] ?? 0) / 4);
+
+  const fight = Math.floor((counts[19] ?? 0) / 2);
+
+  const determination = Math.floor((counts[20] ?? 0) / 2);
+
+  const enhance = Math.floor((counts[21] ?? 0) / 2);
+
+  const accuracy = Math.floor((counts[22] ?? 0) / 2);
+
+  const tolerance = Math.floor((counts[23] ?? 0) / 2);
 
   switch (stat) {
     case "hp":
@@ -56,16 +68,41 @@ export function getSetBonus(runes: any[], stat: string) {
       bonus += swift * 25;
       break;
 
+    case "hp":
+      bonus += energy * 15;
+      bonus += enhance * 8;
+      break;
+
+    case "atk":
+      bonus += fatal * 35;
+      bonus += fight * 8;
+      break;
+
+    case "def":
+      bonus += guard * 15;
+      bonus += determination * 8;
+      break;
+
+    case "spd":
+      bonus += swift * 25;
+      break;
+
     case "cr":
       bonus += blade * 12;
       break;
 
+    case "cd":
+      bonus += rage * 40;
+      break;
+
     case "acc":
       bonus += focus * 20;
+      bonus += accuracy * 10;
       break;
 
     case "res":
       bonus += endure * 20;
+      bonus += tolerance * 10;
       break;
   }
 

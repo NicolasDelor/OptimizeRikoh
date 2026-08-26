@@ -296,26 +296,60 @@ export function optimizeMonsterRunes(
 
   const maxGuardBonus = Math.ceil((monster.baseDef ?? monster.def) * 0.15);
 
+  const maxBladeBonus = requiredSets.filter((s) => s === "Blade").length * 12;
+
+  const maxFocusBonus = requiredSets.filter((s) => s === "Focus").length * 20;
+
+  const maxEndureBonus = requiredSets.filter((s) => s === "Endure").length * 20;
+
+  const maxRageBonus = requiredSets.filter((s) => s === "Rage").length * 40;
+
+  const maxFightBonus =
+    Math.ceil((monster.baseAtk ?? monster.atk) * 0.08) *
+    requiredSets.filter((s) => s === "Fight").length;
+
+  const maxDeterminationBonus =
+    Math.ceil((monster.baseDef ?? monster.def) * 0.08) *
+    requiredSets.filter((s) => s === "Determination").length;
+
+  const maxEnhanceBonus =
+    Math.ceil((monster.baseHp ?? monster.hp) * 0.08) *
+    requiredSets.filter((s) => s === "Enhance").length;
+
+  const maxAccuracyBonus =
+    requiredSets.filter((s) => s === "Accuracy").length * 10;
+
+  const maxToleranceBonus =
+    requiredSets.filter((s) => s === "Tolerance").length * 10;
+
   function canStillReachMinimums(
     currentStats: PartialStats,
     remainingMax: PartialStats,
     config: MonsterConfig
   ) {
-    const hpPotential = currentStats.hp + remainingMax.hp + maxEnergyBonus;
+    const hpPotential =
+      currentStats.hp + remainingMax.hp + maxEnergyBonus + maxEnhanceBonus;
 
-    const atkPotential = currentStats.atk + remainingMax.atk + maxFatalBonus;
+    const atkPotential =
+      currentStats.atk + remainingMax.atk + maxFatalBonus + maxFightBonus;
 
-    const defPotential = currentStats.def + remainingMax.def + maxGuardBonus;
+    const defPotential =
+      currentStats.def +
+      remainingMax.def +
+      maxGuardBonus +
+      maxDeterminationBonus;
 
     const spdPotential = currentStats.spd + remainingMax.spd + maxSwiftBonus;
 
-    const crPotential = currentStats.cr + remainingMax.cr;
+    const crPotential = currentStats.cr + remainingMax.cr + maxBladeBonus;
 
-    const cdPotential = currentStats.cd + remainingMax.cd;
+    const cdPotential = currentStats.cd + remainingMax.cd + maxRageBonus;
 
-    const accPotential = currentStats.acc + remainingMax.acc;
+    const accPotential =
+      currentStats.acc + remainingMax.acc + maxFocusBonus + maxAccuracyBonus;
 
-    const resPotential = currentStats.res + remainingMax.res;
+    const resPotential =
+      currentStats.res + remainingMax.res + maxEndureBonus + maxToleranceBonus;
 
     return !(
       (config.stats.hpMin !== undefined &&
@@ -462,22 +496,54 @@ export function optimizeMonsterRunes(
     }
 
     if (slotIndex === slotRunes.length) {
+      const completedRunes = buildRunes.filter(Boolean);
+
       const stats = {
-        hp: monster.hp + partialStats.hp,
+        hp:
+          monster.hp +
+          partialStats.hp +
+          Math.round(
+            ((monster.baseHp ?? monster.hp) *
+              getSetBonus(completedRunes, "hp")) /
+              100
+          ),
 
-        atk: monster.atk + partialStats.atk,
+        atk:
+          monster.atk +
+          partialStats.atk +
+          Math.round(
+            ((monster.baseAtk ?? monster.atk) *
+              getSetBonus(completedRunes, "atk")) /
+              100
+          ),
 
-        def: monster.def + partialStats.def,
+        def:
+          monster.def +
+          partialStats.def +
+          Math.round(
+            ((monster.baseDef ?? monster.def) *
+              getSetBonus(completedRunes, "def")) /
+              100
+          ),
 
-        spd: monster.spd + partialStats.spd + partialStats.setSpd,
+        spd:
+          monster.spd +
+          partialStats.spd +
+          Math.round(
+            ((monster.baseSpd ?? monster.spd) *
+              getSetBonus(completedRunes, "spd")) /
+              100
+          ),
 
-        cr: monster.cr + partialStats.cr + partialStats.setCr,
+        cr: monster.cr + partialStats.cr + getSetBonus(completedRunes, "cr"),
 
         cd: monster.cd + partialStats.cd,
 
-        acc: monster.acc + partialStats.acc + partialStats.setAcc,
+        acc:
+          monster.acc + partialStats.acc + getSetBonus(completedRunes, "acc"),
 
-        res: monster.res + partialStats.res + partialStats.setRes,
+        res:
+          monster.res + partialStats.res + getSetBonus(completedRunes, "res"),
       };
 
       const statFilterStart = performance.now();
@@ -518,10 +584,12 @@ export function optimizeMonsterRunes(
 
       explored++;
 
-      /*   if (results.length >= 1000000) {
+      /* 5M */
+
+      if (results.length >= 1000000) {
         stopRequested = true;
         return;
-      } */
+      }
 
       const ehp = (stats.hp * (1140 + stats.def)) / 1000;
 
@@ -555,12 +623,12 @@ export function optimizeMonsterRunes(
         slot6: mainStatNames[buildRunes[5].pri_eff?.[0]] ?? "",
 
         runeIds: [
-          buildRunes[0].rune_id,
-          buildRunes[1].rune_id,
-          buildRunes[2].rune_id,
-          buildRunes[3].rune_id,
-          buildRunes[4].rune_id,
-          buildRunes[5].rune_id,
+          buildRunes[0].swopId,
+          buildRunes[1].swopId,
+          buildRunes[2].swopId,
+          buildRunes[3].swopId,
+          buildRunes[4].swopId,
+          buildRunes[5].swopId,
         ],
 
         score,
@@ -699,10 +767,6 @@ export function optimizeMonsterRunes(
    * Si ce nombre devient énorme, il est normal
    * que le moteur ralentisse.
    */
-  const theoreticalCombinations = slotRunes.reduce(
-    (total, slot) => total * slot.runes.length,
-    1
-  );
 
   explore(
     0,
@@ -731,10 +795,8 @@ export function optimizeMonsterRunes(
 
   results.sort((a, b) => compareResults(a, b, config.focus));
 
-  console.log("OPTIMIZATION FINISHED");
   return results;
 }
-
 export function optimizeMonster(
   monster: Monster,
   config: MonsterConfig
@@ -779,6 +841,7 @@ export function optimizeMonster(
   if (!passesSlotFilters(monster.runes ?? [], config)) {
     return [];
   }
+
   const ehp = (stats.hp * (1140 + stats.def)) / 1000;
 
   const efficiency = stats.spd + stats.cr + stats.cd + stats.acc + stats.res;
