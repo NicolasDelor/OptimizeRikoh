@@ -9,6 +9,7 @@ import { getRunesForMode } from "../../services/runeModeService";
 import { getActiveSets } from "../../services/statCalculator";
 import { runeSetIcons } from "../../data/runeSetIcons";
 import { runeSetNames, mainStatNames } from "../../data/runeData";
+import Select from "react-select";
 
 interface Props {
   monster?: Monster;
@@ -34,17 +35,88 @@ export default function TeamMonsterCard({
     return null;
   }
 
-  const [showSets, setShowSets] = useState(false);
+  const slotStyles = {
+    control: (base: any) => ({
+      ...base,
+      backgroundColor: "#081321",
+      border: "1px solid #20375f",
+      minHeight: "42px",
+      boxShadow: "none",
+      cursor: "pointer",
+    }),
+    placeholder: (base: any) => ({
+      ...base,
+      color: "#aaa",
+    }),
+    input: (base: any) => ({
+      ...base,
+      color: "#fff",
+    }),
+    singleValue: (base: any) => ({
+      ...base,
+      color: "#fff",
+    }),
+    menuPortal: (base: any) => ({
+      ...base,
+      zIndex: 99999,
+    }),
+    menu: (base: any) => ({
+      ...base,
+      backgroundColor: "#081321",
+      border: "1px solid #20375f",
+      zIndex: 99999,
+    }),
+    option: (base: any, state: any) => ({
+      ...base,
+      backgroundColor: state.isFocused ? "#1a2d4d" : "#081321",
+      color: "#fff",
+      cursor: "pointer",
+    }),
+    indicatorSeparator: () => ({
+      display: "none",
+    }),
+    dropdownIndicator: () => ({
+      display: "none",
+    }),
+    clearIndicator: () => ({
+      display: "none",
+    }),
+    indicatorsContainer: () => ({
+      display: "none",
+    }),
+    multiValue: (base: any) => ({
+      ...base,
+      backgroundColor: "#16345c",
+      border: "1px solid #2f6db8",
+      borderRadius: "4px",
+    }),
 
-  const [showMainStats, setShowMainStats] = useState(false);
+    multiValueLabel: (base: any) => ({
+      ...base,
+      color: "#fff",
+      fontSize: "11px",
+      fontWeight: 600,
+    }),
 
-  const [showFocus, setShowFocus] = useState(false);
+    multiValueRemove: (base: any) => ({
+      ...base,
+      color: "#fff",
+      ":hover": {
+        backgroundColor: "#355b94",
+        color: "#fff",
+      },
+    }),
+  };
 
   const runes = getRunesForMode(monster, importMode, swexData);
 
   const importedSets = getActiveSets(runes)
     .map((setId) => runeSetNames[setId])
     .filter(Boolean);
+
+  const importedSet1 = importedSets[0] ? [importedSets[0]] : [];
+  const importedSet2 = importedSets[1] ? [importedSets[1]] : [];
+  const importedSet3 = importedSets[2] ? [importedSets[2]] : [];
 
   const importedSlot2 =
     mainStatNames[runes.find((r: any) => r.slot_no === 2)?.pri_eff?.[0]] ?? "";
@@ -54,9 +126,6 @@ export default function TeamMonsterCard({
 
   const importedSlot6 =
     mainStatNames[runes.find((r: any) => r.slot_no === 6)?.pri_eff?.[0]] ?? "";
-
-  const [focusSearch, setFocusSearch] = useState("");
-  const [showFocusList, setShowFocusList] = useState(false);
 
   const getCurrentSpd = () =>
     getRuneBonus(runes, 8) + getSetBonus(runes, "spd");
@@ -190,15 +259,8 @@ export default function TeamMonsterCard({
     "efficiency",
   ];
 
-  const focusList = Array.isArray(config.focus) ? config.focus : ["spd"];
-
+  const focusList = config.focus ?? [];
   const MAX_FOCUS = 5;
-
-  const filteredFocusStats = focusStats.filter(
-    (stat) =>
-      !focusList.includes(stat) &&
-      stat.toLowerCase().includes(focusSearch.toLowerCase())
-  );
 
   return (
     <div className="card">
@@ -257,250 +319,201 @@ export default function TeamMonsterCard({
         />
       </div>
 
-      <div
-        className="config-summary-button"
-        onClick={() => setShowFocus(!showFocus)}
-      >
-        <span>{showFocus ? "▼" : "▶"} Focus</span>
-
-        <span className="config-summary-value">
-          {focusList.length
-            ? focusList.map((f) => f.toUpperCase()).join(" / ")
-            : "Any"}
-        </span>
-      </div>
-
-      {showFocus && (
-        <div className="focus-panel">
-
-          <div className="focus-selected">
-            {focusList.map((focus, index) => (
-              <button
-                key={index}
-                type="button"
-                className="focus-tag"
-                onClick={() =>
-                  onConfigChange?.({
-                    focus: focusList.filter((_, i) => i !== index),
-                  })
-                }
-              >
-                ✕ {focus.toUpperCase()}
-              </button>
-            ))}
-
-            {focusList.length > 0 && (
-
-                Clear
-              </button>
-            )}
-          </div>
-
-          <div className="focus-dropdown-container">
-            <input
-              className="focus-search"
-              type="text"
-              placeholder="Choose up to 5 priority stats"
-              value={focusSearch}
-              onFocus={() => setShowFocusList(true)}
-              onBlur={() => setTimeout(() => setShowFocusList(false), 150)}
-              onChange={(e) => setFocusSearch(e.target.value)}
-            />
-            {showFocusList && filteredFocusStats.length > 0 && (
-              <div className="focus-options">
-                {filteredFocusStats.map((stat) => (
-                  <div
-                    key={stat}
-                    className="focus-option"
-                    onClick={() => {
-                      if (focusList.length >= MAX_FOCUS) {
-                        return;
-                      }
-
-                      onConfigChange?.({
-                        focus: [...focusList, stat],
-                      });
-
-                      setFocusSearch("");
-                      setShowFocusList(false);
-                    }}
-                  >
-                    {stat.toUpperCase()}
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
+      <div className="monster-runes-configuration">
+        <div className="slot-select-group">
+          <Select
+            isMulti
+            closeMenuOnSelect={false}
+            hideSelectedOptions
+            placeholder="Set 1"
+            menuPortalTarget={document.body}
+            menuPosition="fixed"
+            options={runeSets.map((set) => ({
+              value: set,
+              label: set,
+            }))}
+            value={(config.requiredSet1 ?? importedSet1).map((set: string) => ({
+              value: set,
+              label: set,
+            }))}
+            onChange={(selectedOptions) =>
+              onConfigChange?.({
+                requiredSet1: selectedOptions
+                  ? selectedOptions.map((o: any) => o.value)
+                  : [],
+              })
+            }
+            styles={slotStyles}
+          />
         </div>
-      )}
 
-      <div
-        className="config-summary-button"
-        onClick={() => setShowSets(!showSets)}
-      >
-        <span>{showSets ? "▼" : "▶"} Sets</span>
-
-        <span className="config-summary-value">
-          {importedSets.join(" / ") || "Any"}
-        </span>
-      </div>
-
-      {showSets && (
-        <div className="monster-runes-configuration">
-          <div className="rune-filter-row">
-            <span>SET 1</span>
-
-            <select
-              value={config.requiredSets?.[0] || importedSets[0] || ""}
-              onChange={(e) =>
-                onConfigChange?.({
-                  requiredSets: [
-                    e.target.value,
-                    config.requiredSets?.[1] ?? "",
-                    config.requiredSets?.[2] ?? "",
-                  ],
-                })
-              }
-            >
-              <option value="">Any</option>
-
-              {runeSets.map((set) => (
-                <option key={set} value={set}>
-                  {set}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div className="rune-filter-row">
-            <span>SET 2</span>
-
-            <select
-              value={config.requiredSets?.[1] || importedSets[1] || ""}
-              onChange={(e) =>
-                onConfigChange?.({
-                  requiredSets: [
-                    config.requiredSets?.[0] ?? "",
-                    e.target.value,
-                    config.requiredSets?.[2] ?? "",
-                  ],
-                })
-              }
-            >
-              <option value="">Any</option>
-
-              {runeSets.map((set) => (
-                <option key={set} value={set}>
-                  {set}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div className="rune-filter-row">
-            <span>SET 3</span>
-
-            <select
-              value={config.requiredSets?.[2] || importedSets[2] || ""}
-              onChange={(e) =>
-                onConfigChange?.({
-                  requiredSets: [
-                    config.requiredSets?.[0] ?? "",
-                    config.requiredSets?.[1] ?? "",
-                    e.target.value,
-                  ],
-                })
-              }
-            >
-              <option value="">Any</option>
-
-              {runeSets.map((set) => (
-                <option key={set} value={set}>
-                  {set}
-                </option>
-              ))}
-            </select>
-          </div>
+        <div className="slot-select-group">
+          <Select
+            isMulti
+            closeMenuOnSelect={false}
+            hideSelectedOptions
+            placeholder="Set 2"
+            menuPortalTarget={document.body}
+            menuPosition="fixed"
+            options={runeSets.map((set) => ({
+              value: set,
+              label: set,
+            }))}
+            value={(config.requiredSet2 ?? importedSet2).map((set: string) => ({
+              value: set,
+              label: set,
+            }))}
+            onChange={(selectedOptions) =>
+              onConfigChange?.({
+                requiredSet2: selectedOptions
+                  ? selectedOptions.map((o: any) => o.value)
+                  : [],
+              })
+            }
+            styles={slotStyles}
+          />
         </div>
-      )}
 
-      <div
-        className="config-summary-button"
-        onClick={() => setShowMainStats(!showMainStats)}
-      >
-        <span>{showMainStats ? "▼" : "▶"} Slots</span>
-
-        <span className="config-summary-value">
-          {[
-            config.slot2MainStats?.[0] || importedSlot2,
-            config.slot4MainStats?.[0] || importedSlot4,
-            config.slot6MainStats?.[0] || importedSlot6,
-          ]
-            .filter(Boolean)
-            .join(" / ") || "Any"}
-        </span>
-      </div>
-
-      {showMainStats && (
-        <div className="monster-runes-configuration">
-          <div className="rune-filter-row">
-            <span>SLOT 2</span>
-
-            <select
-              value={config.slot2MainStats?.[0] || importedSlot2}
-              onChange={(e) =>
-                onConfigChange?.({
-                  slot2MainStats: [e.target.value],
-                })
-              }
-            >
-              <option value="">Any</option>
-
-              {slot2MainStats.map((stat) => (
-                <option key={stat}>{stat}</option>
-              ))}
-            </select>
-          </div>
-
-          <div className="rune-filter-row">
-            <span>SLOT 4</span>
-
-            <select
-              value={config.slot4MainStats?.[0] || importedSlot4}
-              onChange={(e) =>
-                onConfigChange?.({
-                  slot4MainStats: [e.target.value],
-                })
-              }
-            >
-              <option value="">Any</option>
-
-              {slot4MainStats.map((stat) => (
-                <option key={stat}>{stat}</option>
-              ))}
-            </select>
-          </div>
-
-          <div className="rune-filter-row">
-            <span>SLOT 6</span>
-
-            <select
-              value={config.slot6MainStats?.[0] || importedSlot6}
-              onChange={(e) =>
-                onConfigChange?.({
-                  slot6MainStats: [e.target.value],
-                })
-              }
-            >
-              <option value="">Any</option>
-
-              {slot6MainStats.map((stat) => (
-                <option key={stat}>{stat}</option>
-              ))}
-            </select>
-          </div>
+        <div className="slot-select-group">
+          <Select
+            isMulti
+            closeMenuOnSelect={false}
+            hideSelectedOptions
+            placeholder="Set 3"
+            menuPortalTarget={document.body}
+            menuPosition="fixed"
+            options={runeSets.map((set) => ({
+              value: set,
+              label: set,
+            }))}
+            value={(config.requiredSet3 ?? importedSet3).map((set: string) => ({
+              value: set,
+              label: set,
+            }))}
+            onChange={(selectedOptions) =>
+              onConfigChange?.({
+                requiredSet3: selectedOptions
+                  ? selectedOptions.map((o: any) => o.value)
+                  : [],
+              })
+            }
+            styles={slotStyles}
+          />
         </div>
-      )}
+      </div>
+      <div className="monster-runes-configuration">
+        <div className="slot-select-group">
+          <Select
+            isMulti
+            closeMenuOnSelect={false}
+            hideSelectedOptions
+            placeholder="Slot 2..."
+            menuPortalTarget={document.body}
+            menuPosition="fixed"
+            options={slot2MainStats.map((stat) => ({
+              value: stat,
+              label: stat,
+            }))}
+            value={(
+              config.slot2MainStats ?? (importedSlot2 ? [importedSlot2] : [])
+            ).map((stat: string) => ({
+              value: stat,
+              label: stat,
+            }))}
+            onChange={(selectedOptions) =>
+              onConfigChange?.({
+                slot2MainStats: selectedOptions
+                  ? selectedOptions.map((o: any) => o.value)
+                  : [],
+              })
+            }
+            styles={slotStyles}
+          />
+        </div>
+
+        <div className="slot-select-group">
+          <Select
+            isMulti
+            closeMenuOnSelect={false}
+            hideSelectedOptions
+            placeholder="Slot 4..."
+            menuPortalTarget={document.body}
+            menuPosition="fixed"
+            options={slot4MainStats.map((stat) => ({
+              value: stat,
+              label: stat,
+            }))}
+            value={(
+              config.slot4MainStats ?? (importedSlot4 ? [importedSlot4] : [])
+            ).map((stat: string) => ({
+              value: stat,
+              label: stat,
+            }))}
+            onChange={(selectedOptions) =>
+              onConfigChange?.({
+                slot4MainStats: selectedOptions
+                  ? selectedOptions.map((o: any) => o.value)
+                  : [],
+              })
+            }
+            styles={slotStyles}
+          />
+        </div>
+        <div className="slot-select-group">
+          <Select
+            isMulti
+            closeMenuOnSelect={false}
+            hideSelectedOptions
+            placeholder="Slot 6..."
+            menuPortalTarget={document.body}
+            menuPosition="fixed"
+            options={slot6MainStats.map((stat) => ({
+              value: stat,
+              label: stat,
+            }))}
+            value={(
+              config.slot6MainStats ?? (importedSlot6 ? [importedSlot6] : [])
+            ).map((stat: string) => ({
+              value: stat,
+              label: stat,
+            }))}
+            onChange={(selectedOptions) =>
+              onConfigChange?.({
+                slot6MainStats: selectedOptions
+                  ? selectedOptions.map((o: any) => o.value)
+                  : [],
+              })
+            }
+            styles={slotStyles}
+          />
+        </div>
+      </div>
+      <div className="focus-panel">
+        <Select
+          isMulti
+          closeMenuOnSelect={false}
+          hideSelectedOptions
+          placeholder="Focus"
+          menuPortalTarget={document.body}
+          menuPosition="fixed"
+          options={focusStats.map((stat) => ({
+            value: stat,
+            label: stat.toUpperCase(),
+          }))}
+          value={focusList.map((stat: string) => ({
+            value: stat,
+            label: stat.toUpperCase(),
+          }))}
+          onChange={(selectedOptions) => {
+            onConfigChange?.({
+              focus: selectedOptions
+                ? selectedOptions.map((option: any) => option.value)
+                : [],
+            });
+          }}
+          styles={slotStyles}
+        />
+      </div>
 
       <div className="monster-stats">
         <div className="stats-header">

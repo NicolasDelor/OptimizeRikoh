@@ -74,7 +74,11 @@ export function optimizeMonsterRunes(
    * L'objectif est de ne jamais exclure une combinaison valide.
    */
 
-  const requiredSets = config.requiredSets.filter(Boolean);
+  const requiredSets = [
+    ...(config.requiredSet1 ?? []),
+    ...(config.requiredSet2 ?? []),
+    ...(config.requiredSet3 ?? []),
+  ].filter(Boolean);
 
   const prioritizedSets = requiredSets.map((setName) => ({
     setName,
@@ -284,32 +288,76 @@ export function optimizeMonsterRunes(
     );
   }
 
-  const maxSwiftBonus = Math.floor((monster.baseSpd ?? monster.spd) * 0.25);
+  const maxSwiftBonus = Math.ceil((monster.baseSpd ?? monster.spd) * 0.25);
+
+  const maxEnergyBonus = Math.ceil((monster.baseHp ?? monster.hp) * 0.15);
+
+  const maxFatalBonus = Math.ceil((monster.baseAtk ?? monster.atk) * 0.35);
+
+  const maxGuardBonus = Math.ceil((monster.baseDef ?? monster.def) * 0.15);
 
   function canStillReachMinimums(
     currentStats: PartialStats,
     remainingMax: PartialStats,
     config: MonsterConfig
   ) {
+    const hpPotential = currentStats.hp + remainingMax.hp + maxEnergyBonus;
+
+    const atkPotential = currentStats.atk + remainingMax.atk + maxFatalBonus;
+
+    const defPotential = currentStats.def + remainingMax.def + maxGuardBonus;
+
+    const spdPotential = currentStats.spd + remainingMax.spd + maxSwiftBonus;
+
+    const crPotential = currentStats.cr + remainingMax.cr;
+
+    const cdPotential = currentStats.cd + remainingMax.cd;
+
+    const accPotential = currentStats.acc + remainingMax.acc;
+
+    const resPotential = currentStats.res + remainingMax.res;
+
     return !(
+      (config.stats.hpMin !== undefined &&
+        Math.round(hpPotential) < config.stats.hpMin) ||
+      (config.stats.atkMin !== undefined &&
+        Math.round(atkPotential) < config.stats.atkMin) ||
+      (config.stats.defMin !== undefined &&
+        Math.round(defPotential) < config.stats.defMin) ||
       (config.stats.spdMin !== undefined &&
-        currentStats.spd + remainingMax.spd + maxSwiftBonus <
-          config.stats.spdMin) ||
+        Math.round(spdPotential) < config.stats.spdMin) ||
       (config.stats.crMin !== undefined &&
-        currentStats.cr + remainingMax.cr < config.stats.crMin) ||
+        Math.round(crPotential) < config.stats.crMin) ||
       (config.stats.cdMin !== undefined &&
-        currentStats.cd + remainingMax.cd < config.stats.cdMin) ||
+        Math.round(cdPotential) < config.stats.cdMin) ||
       (config.stats.accMin !== undefined &&
-        currentStats.acc + remainingMax.acc < config.stats.accMin) ||
+        Math.round(accPotential) < config.stats.accMin) ||
       (config.stats.resMin !== undefined &&
-        currentStats.res + remainingMax.res < config.stats.resMin)
+        Math.round(resPotential) < config.stats.resMin)
     );
   }
 
   const remainingMax: PartialStats[] = slotRunes.map((_, index) => ({
-    hp: 0,
-    atk: 0,
-    def: 0,
+    hp: slotRunes
+      .slice(index + 1)
+      .reduce(
+        (sum, slot) => sum + Math.max(...slot.runes.map((r) => r.cachedHp), 0),
+        0
+      ),
+
+    atk: slotRunes
+      .slice(index + 1)
+      .reduce(
+        (sum, slot) => sum + Math.max(...slot.runes.map((r) => r.cachedAtk), 0),
+        0
+      ),
+
+    def: slotRunes
+      .slice(index + 1)
+      .reduce(
+        (sum, slot) => sum + Math.max(...slot.runes.map((r) => r.cachedDef), 0),
+        0
+      ),
 
     spd: slotRunes
       .slice(index + 1)
@@ -470,10 +518,10 @@ export function optimizeMonsterRunes(
 
       explored++;
 
-      if (results.length >= 1000000) {
+      /*   if (results.length >= 1000000) {
         stopRequested = true;
         return;
-      }
+      } */
 
       const ehp = (stats.hp * (1140 + stats.def)) / 1000;
 
@@ -517,7 +565,6 @@ export function optimizeMonsterRunes(
 
         score,
       };
-
       results.push(result);
 
       return;
@@ -657,7 +704,6 @@ export function optimizeMonsterRunes(
     1
   );
 
-  console.log("COMBINATIONS BEFORE", theoreticalCombinations);
   explore(
     0,
     new Array(6),
@@ -681,37 +727,9 @@ export function optimizeMonsterRunes(
     new Set<number>()
   );
 
-  console.log("THEORETICAL", theoreticalCombinations);
-
-  console.log("VISITED", recursionCalls.value);
-
-  console.log("EXPLORED", explored);
-
-  console.log("PRUNED", pruned);
-
-  console.log(
-    "REDUCED VS THEORETICAL",
-    ((1 - recursionCalls.value / theoreticalCombinations) * 100).toFixed(6) +
-      "%"
-  );
-
   const sortStart = performance.now();
 
   results.sort((a, b) => compareResults(a, b, config.focus));
-
-  console.log("SORT TIME", (performance.now() - sortStart).toFixed(2), "ms");
-
-  console.log("RESULTS KEPT", results.length);
-
-  console.log("BEST SPD", results[0]?.spd);
-
-  console.log("WORST SPD", results[results.length - 1]?.spd);
-
-  console.log("STAT FILTER TIME", statFilterTime.toFixed(2), "ms");
-
-  console.log("SET FILTER TIME", setFilterTime.toFixed(2), "ms");
-
-  console.log("SLOT FILTER TIME", slotFilterTime.toFixed(2), "ms");
 
   console.log("OPTIMIZATION FINISHED");
   return results;

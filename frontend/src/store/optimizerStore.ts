@@ -125,11 +125,9 @@ export function useOptimizerStore() {
       monsterId: id,
       stats: {},
 
-      requiredSets: [
-        activeSets[0] ?? "",
-        activeSets[1] ?? "",
-        activeSets[2] ?? "",
-      ],
+      requiredSet1: activeSets[0] ? [activeSets[0]] : [],
+      requiredSet2: activeSets[1] ? [activeSets[1]] : [],
+      requiredSet3: activeSets[2] ? [activeSets[2]] : [],
 
       forbiddenSets: [],
 

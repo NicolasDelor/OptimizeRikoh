@@ -39,7 +39,13 @@ export function passesSlotFilters(runes: any[], config: MonsterConfig) {
 }
 
 export function passesSetFilters(activeSets: string[], config: MonsterConfig) {
-  for (const requiredSet of config.requiredSets) {
+  const requiredSets = [
+    ...(config.requiredSet1 ?? []),
+    ...(config.requiredSet2 ?? []),
+    ...(config.requiredSet3 ?? []),
+  ];
+
+  for (const requiredSet of requiredSets) {
     if (requiredSet && !activeSets.includes(requiredSet)) {
       return false;
     }
@@ -58,69 +64,48 @@ export function passesStatFilters(
   stats: Record<string, number>,
   config: MonsterConfig
 ) {
-  if (config.stats.hpMin !== undefined && stats.hp < config.stats.hpMin) {
-    return false;
-  }
+  const hp = Math.round(stats.hp);
+  const atk = Math.round(stats.atk);
+  const def = Math.round(stats.def);
+  const spd = Math.round(stats.spd);
+  const cr = Math.round(stats.cr);
+  const cd = Math.round(stats.cd);
+  const acc = Math.round(stats.acc);
+  const res = Math.round(stats.res);
 
-  if (config.stats.hpMax !== undefined && stats.hp > config.stats.hpMax) {
-    return false;
-  }
+  if (config.stats.hpMin !== undefined && hp < config.stats.hpMin) return false;
+  if (config.stats.hpMax !== undefined && hp > config.stats.hpMax) return false;
 
-  if (config.stats.atkMin !== undefined && stats.atk < config.stats.atkMin) {
+  if (config.stats.atkMin !== undefined && atk < config.stats.atkMin)
     return false;
-  }
+  if (config.stats.atkMax !== undefined && atk > config.stats.atkMax)
+    return false;
 
-  if (config.stats.atkMax !== undefined && stats.atk > config.stats.atkMax) {
+  if (config.stats.defMin !== undefined && def < config.stats.defMin)
     return false;
-  }
+  if (config.stats.defMax !== undefined && def > config.stats.defMax)
+    return false;
 
-  if (config.stats.defMin !== undefined && stats.def < config.stats.defMin) {
+  if (config.stats.spdMin !== undefined && spd < config.stats.spdMin)
     return false;
-  }
+  if (config.stats.spdMax !== undefined && spd > config.stats.spdMax)
+    return false;
 
-  if (config.stats.defMax !== undefined && stats.def > config.stats.defMax) {
-    return false;
-  }
+  if (config.stats.crMin !== undefined && cr < config.stats.crMin) return false;
+  if (config.stats.crMax !== undefined && cr > config.stats.crMax) return false;
 
-  if (config.stats.spdMin !== undefined && stats.spd < config.stats.spdMin) {
-    return false;
-  }
+  if (config.stats.cdMin !== undefined && cd < config.stats.cdMin) return false;
+  if (config.stats.cdMax !== undefined && cd > config.stats.cdMax) return false;
 
-  if (config.stats.spdMax !== undefined && stats.spd > config.stats.spdMax) {
+  if (config.stats.accMin !== undefined && acc < config.stats.accMin)
     return false;
-  }
+  if (config.stats.accMax !== undefined && acc > config.stats.accMax)
+    return false;
 
-  if (config.stats.crMin !== undefined && stats.cr < config.stats.crMin) {
+  if (config.stats.resMin !== undefined && res < config.stats.resMin)
     return false;
-  }
-
-  if (config.stats.crMax !== undefined && stats.cr > config.stats.crMax) {
+  if (config.stats.resMax !== undefined && res > config.stats.resMax)
     return false;
-  }
-
-  if (config.stats.cdMin !== undefined && stats.cd < config.stats.cdMin) {
-    return false;
-  }
-
-  if (config.stats.cdMax !== undefined && stats.cd > config.stats.cdMax) {
-    return false;
-  }
-
-  if (config.stats.accMin !== undefined && stats.acc < config.stats.accMin) {
-    return false;
-  }
-
-  if (config.stats.accMax !== undefined && stats.acc > config.stats.accMax) {
-    return false;
-  }
-
-  if (config.stats.resMin !== undefined && stats.res < config.stats.resMin) {
-    return false;
-  }
-
-  if (config.stats.resMax !== undefined && stats.res > config.stats.resMax) {
-    return false;
-  }
 
   return true;
 }

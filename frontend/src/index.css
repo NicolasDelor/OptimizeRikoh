@@ -373,17 +373,14 @@ input[type="number"] {
 /* RUNE FILTERS */
 
 .monster-runes-configuration {
-  margin-top: 4px;
-  margin-bottom: 8px;
-  padding: 8px 12px;
-  border-left: 2px solid #33d6ff;
-  background: transparent;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0px;
 }
 
 .monster-runes-configuration::after {
   content: "";
   display: block;
-  margin-top: 12px;
   border-bottom: 1px solid #23324d;
 }
 
@@ -617,8 +614,6 @@ input[type="number"] {
 }
 
 .monster-results-section {
-  width: 300px;
-  max-width: 300px;
   min-width: 300px;
 
   padding: 12px;
@@ -701,7 +696,6 @@ input[type="number"] {
 }
 
 .focus-panel {
-  margin: 12px 0;
   background: #0f172a;
   border: 1px solid #1e3a5f;
   border-radius: 8px;
@@ -807,8 +801,6 @@ input[type="number"] {
   width: 100%;
   height: 46px;
 
-  padding: 0 12px;
-
   background: #08111f;
   border: 1px solid #33d6ff;
 
@@ -838,12 +830,73 @@ input[type="number"] {
 }
 
 .focus-option {
-  padding: 10px 12px;
-
   color: #dff6ff;
   cursor: pointer;
 }
 
 .focus-option:hover {
   background: #1c2a40;
+}
+
+.focus-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.focus-option {
+  padding: 4px 8px;
+  border: 1px solid #2d4678;
+  background: #182644;
+  color: #fff;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.focus-option {
+  width: 100%;
+}
+.monster-runes-configuration {
+  display: flex;
+  gap: 8px;
+}
+
+.monster-runes-configuration {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 0px;
+}
+
+.monster-runes-configuration {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.slot-select-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.slot-select-label {
+  text-align: center;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: #73d7ff;
+}
+.slot-select-group .css-b62m3t-container {
+  width: 100%;
+}
+
+.slot-select-group .react-select__control {
+  min-height: 42px;
+}
+
+.monster-sets-configuration {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
 }

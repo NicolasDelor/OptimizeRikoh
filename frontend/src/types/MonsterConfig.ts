@@ -27,7 +27,10 @@ export interface MonsterConfig {
     resMax?: number;
   };
 
-  requiredSets: string[];
+  requiredSet1: string[];
+  requiredSet2: string[];
+  requiredSet3: string[];
+
   forbiddenSets: string[];
 
   slot2MainStats: string[];

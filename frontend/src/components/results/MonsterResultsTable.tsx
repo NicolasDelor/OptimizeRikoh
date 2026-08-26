@@ -78,6 +78,7 @@ export default function MonsterResultsTable({
         <thead>
           <tr>
             <th>#</th>
+            <th>RUNES</th>
 
             {visibleColumns.sets && <th>SETS</th>}
 
@@ -132,25 +133,30 @@ export default function MonsterResultsTable({
             <tr key={index}>
               <td>{(currentPage - 1) * PAGE_SIZE + index + 1}</td>
 
+              <td>{result.runeIds.join(",")}</td>
+
               {visibleColumns.sets && <td>{result.sets.join(", ")}</td>}
 
-              {visibleColumns.hp && <td>{result.hp}</td>}
+              {visibleColumns.hp && <td>{Math.round(result.hp)}</td>}
 
-              {visibleColumns.atk && <td>{result.atk}</td>}
+              {visibleColumns.atk && <td>{Math.round(result.atk)}</td>}
 
-              {visibleColumns.def && <td>{result.def}</td>}
+              {visibleColumns.def && <td>{Math.round(result.def)}</td>}
 
-              {visibleColumns.spd && <td className="spd-cell">{result.spd}</td>}
+              {visibleColumns.spd && (
+                <td className="spd-cell">{Math.round(result.spd)}</td>
+              )}
 
-              {visibleColumns.cr && <td>{result.cr}</td>}
+              {visibleColumns.cr && <td>{Math.round(result.cr)}</td>}
 
-              {visibleColumns.cd && <td>{result.cd}</td>}
+              {visibleColumns.cd && <td>{Math.round(result.cd)}</td>}
 
-              {visibleColumns.acc && <td>{result.acc}</td>}
+              {visibleColumns.acc && <td>{Math.round(result.acc)}</td>}
 
-              {visibleColumns.res && <td>{result.res}</td>}
+              {visibleColumns.res && <td>{Math.round(result.res)}</td>}
 
               {visibleColumns.ehp && <td>{Math.round(result.ehp)}</td>}
+
               {visibleColumns.efficiency && (
                 <td>{Math.round(result.efficiency)}</td>
               )}
