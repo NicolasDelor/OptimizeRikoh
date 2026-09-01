@@ -49,7 +49,8 @@ function compareResults(
 export function optimizeMonsterRunes(
   monster: Monster,
   config: MonsterConfig,
-  availableRunes: any[]
+  availableRunes: any[],
+  onProgress?: (progress: { explored: number; pruned: number }) => void
 ): OptimizationResult[] {
   const candidateRunes = availableRunes;
 
@@ -447,14 +448,23 @@ export function optimizeMonsterRunes(
     remainingSlots: number,
     requiredSets: string[]
   ) {
+    const requiredCounts: Record<string, number> = {};
+
+    requiredSets.forEach((set) => {
+      if (!set) return;
+      requiredCounts[set] = (requiredCounts[set] ?? 0) + 1;
+    });
+
     const intangibleCount = setCounts["Intangible"] ?? 0;
 
-    for (const requiredSet of requiredSets.filter(Boolean)) {
-      const piecesNeeded = runeSetPieces[requiredSet];
+    for (const [setName, requiredSetCount] of Object.entries(requiredCounts)) {
+      const piecesPerSet = runeSetPieces[setName] ?? 0;
 
-      const currentPieces = setCounts[requiredSet] ?? 0;
+      const requiredPieces = requiredSetCount * piecesPerSet;
 
-      if (currentPieces + intangibleCount + remainingSlots < piecesNeeded) {
+      const currentPieces = setCounts[setName] ?? 0;
+
+      if (currentPieces + intangibleCount + remainingSlots < requiredPieces) {
         return false;
       }
     }
@@ -587,34 +597,50 @@ export function optimizeMonsterRunes(
       const activeSets: string[] = [];
 
       const intangibleCount = setCounts["Intangible"] ?? 0;
-      let remainingIntangible = intangibleCount;
+      let remainingIntangible = setCounts["Intangible"] ?? 0;
 
-      Object.entries(setCounts).forEach(([setName, count]) => {
-        if (setName === "Intangible") {
-          return;
-        }
+      const sets = Object.entries(setCounts)
+        .filter(([setName]) => setName !== "Intangible")
+        .map(([setName, count]) => {
+          const pieces = runeSetPieces[setName];
 
-        const pieces = runeSetPieces[setName];
+          return {
+            setName,
+            count,
+            pieces,
+            remainder: pieces ? count % pieces : 0,
+          };
+        })
+        .sort((a, b) => {
+          const missingA =
+            a.remainder === 0
+              ? Number.MAX_SAFE_INTEGER
+              : a.pieces - a.remainder;
 
-        if (!pieces) {
-          return;
-        }
+          const missingB =
+            b.remainder === 0
+              ? Number.MAX_SAFE_INTEGER
+              : b.pieces - b.remainder;
 
-        let effectiveCount = count;
+          return missingA - missingB;
+        });
 
-        const missing = Math.max(0, pieces - count);
+      for (const set of sets) {
+        let effectiveCount = set.count;
+
+        const missing = set.remainder === 0 ? 0 : set.pieces - set.remainder;
 
         if (missing > 0 && remainingIntangible >= missing) {
           effectiveCount += missing;
           remainingIntangible -= missing;
         }
 
-        const completeSets = Math.floor(effectiveCount / pieces);
+        const completeSets = Math.floor(effectiveCount / set.pieces);
 
         for (let i = 0; i < completeSets; i++) {
-          activeSets.push(setName);
+          activeSets.push(set.setName);
         }
-      });
+      }
 
       if (intangibleCount > 0) {
         activeSets.push("Intangible");
@@ -634,9 +660,16 @@ export function optimizeMonsterRunes(
 
       explored++;
 
+      if (explored % 1000 === 0) {
+        onProgress?.({
+          explored,
+          pruned,
+        });
+      }
+
       /* 5M */
 
-      if (results.length >= 1000000) {
+      if (results.length >= 100000) {
         stopRequested = true;
         return;
       }
@@ -768,6 +801,7 @@ export function optimizeMonsterRunes(
       }
 
       if (!canStillCompleteSets(setCounts, remainingSlots, requiredSets)) {
+        pruned++;
         if (setName) {
           setCounts[setName]--;
 

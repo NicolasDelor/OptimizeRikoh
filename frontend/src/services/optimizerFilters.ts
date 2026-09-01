@@ -43,10 +43,21 @@ export function passesSetFilters(activeSets: string[], config: MonsterConfig) {
     ...(config.requiredSet1 ?? []),
     ...(config.requiredSet2 ?? []),
     ...(config.requiredSet3 ?? []),
-  ];
+  ].filter(Boolean);
 
-  for (const requiredSet of requiredSets) {
-    if (requiredSet && !activeSets.includes(requiredSet)) {
+  const requiredCounts: Record<string, number> = {};
+  const activeCounts: Record<string, number> = {};
+
+  requiredSets.forEach((set) => {
+    requiredCounts[set] = (requiredCounts[set] ?? 0) + 1;
+  });
+
+  activeSets.forEach((set) => {
+    activeCounts[set] = (activeCounts[set] ?? 0) + 1;
+  });
+
+  for (const [set, requiredCount] of Object.entries(requiredCounts)) {
+    if ((activeCounts[set] ?? 0) < requiredCount) {
       return false;
     }
   }

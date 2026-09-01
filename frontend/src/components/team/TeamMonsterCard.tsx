@@ -110,9 +110,7 @@ export default function TeamMonsterCard({
 
   const runes = getRunesForMode(monster, importMode, swexData);
 
-  const importedSets = getActiveSets(runes)
-    .map((setId) => runeSetNames[setId])
-    .filter(Boolean);
+  const importedSets = getActiveSets(runes);
 
   const importedSet1 = importedSets[0] ? [importedSets[0]] : [];
   const importedSet2 = importedSets[1] ? [importedSets[1]] : [];
@@ -287,7 +285,6 @@ export default function TeamMonsterCard({
 
         <div>
           <div className="monster-name">{monster.name}</div>
-
           <div className="monster-rune-sets">
             {getActiveSets(runes).map((setId, index) => (
               <img

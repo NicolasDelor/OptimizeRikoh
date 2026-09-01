@@ -22,6 +22,15 @@ export function useOptimizerStore() {
     }[]
   >([]);
 
+  const [optimizationProgress, setOptimizationProgress] = useState({
+    running: false,
+    progress: 0,
+    explored: 0,
+    pruned: 0,
+    elapsedMs: 0,
+    estimatedRemainingMs: 0,
+  });
+
   const runeSetNames: Record<number, string> = {
     1: "Fatal",
     2: "Energy",
@@ -115,10 +124,10 @@ export function useOptimizerStore() {
     console.log("MONSTER IMPORT", {
       name: swexMonster.name,
       unitId: swexMonster.unitId,
-      sets: activeSets,
-      slot2: slot2Main,
-      slot4: slot4Main,
-      slot6: slot6Main,
+      activeSets,
+      requiredSet1: activeSets[0] ? [activeSets[0]] : [],
+      requiredSet2: activeSets[1] ? [activeSets[1]] : [],
+      requiredSet3: activeSets[2] ? [activeSets[2]] : [],
     });
 
     const config: MonsterConfig = {
@@ -191,6 +200,8 @@ export function useOptimizerStore() {
   };
 
   return {
+    optimizationProgress,
+    setOptimizationProgress,
     monsters,
     configs,
     selectedMonsterId,

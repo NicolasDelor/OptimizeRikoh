@@ -29,6 +29,11 @@ export default function TeamOptimizerPage() {
   } | null>(null);
 
   const [availableMonsters, setAvailableMonsters] = useState<any[]>([]);
+  const [optimizationProgress, setOptimizationProgress] = useState({
+    running: false,
+    explored: 0,
+    pruned: 0,
+  });
 
   const handleImportSwex = async (
     event: React.ChangeEvent<HTMLInputElement>
@@ -150,6 +155,11 @@ export default function TeamOptimizerPage() {
           <button
             onClick={() => {
               resetOptimizationStop();
+              setOptimizationProgress({
+                running: true,
+                explored: 0,
+                pruned: 0,
+              });
               console.time("OPTIMIZE TEAM");
               console.log("START OPTIMIZE");
               console.log("STOCK RUNES", store.swexData?.runes?.length);
@@ -183,7 +193,14 @@ export default function TeamOptimizerPage() {
                   const monsterResults = optimizeMonsterRunes(
                     monster,
                     config,
-                    allRunes
+                    allRunes,
+                    ({ explored, pruned }) => {
+                      setOptimizationProgress((prev) => ({
+                        ...prev,
+                        explored,
+                        pruned,
+                      }));
+                    }
                   );
 
                   console.timeEnd(`OPT_${monster.name}`);
@@ -206,6 +223,10 @@ export default function TeamOptimizerPage() {
               console.timeEnd("SET_RESULTS");
               console.timeEnd("OPTIMIZE TEAM");
               console.log("ALL MONSTERS DONE");
+              setOptimizationProgress((prev) => ({
+                ...prev,
+                running: false,
+              }));
             }}
           >
             Optimize Team
@@ -254,6 +275,16 @@ export default function TeamOptimizerPage() {
           SIEGE
         </button>
       </div>
+
+      {optimizationProgress.running && (
+        <div className="import-success compact">
+          🔄 Optimisation en cours
+          {" • "}
+          Builds explorés : {optimizationProgress.explored.toLocaleString()}
+          {" • "}
+          Branches supprimées : {optimizationProgress.pruned.toLocaleString()}
+        </div>
+      )}
 
       {importStatus && (
         <div className="import-success compact">
