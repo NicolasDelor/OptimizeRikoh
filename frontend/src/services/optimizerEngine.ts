@@ -716,11 +716,6 @@ export function optimizeMonsterRunes(
 
       /* 5M */
 
-      if (results.length >= 100000) {
-        stopRequested = true;
-        return;
-      }
-
       const ehp = (stats.hp * (1140 + stats.def)) / 1000;
 
       const score = stats.spd * 10 + stats.acc * 5 + ehp / 1000;
@@ -763,6 +758,18 @@ export function optimizeMonsterRunes(
 
         score,
       };
+
+      if (results.length >= 100000) {
+        results.sort((a, b) => compareResults(a, b, config.focus));
+
+        const worst = results[results.length - 1];
+
+        if (compareResults(result, worst, config.focus) >= 0) {
+          return;
+        }
+
+        results.pop();
+      }
 
       if (result.runeIds.join(",") === "1843,1589,2118,3372,2120,3013") {
         console.log("SWOP BUILD FOUND", result);
