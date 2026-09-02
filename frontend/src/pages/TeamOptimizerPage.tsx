@@ -4,11 +4,6 @@ import ResultsPanel from "../components/results/ResultsPanel";
 import TeamMonsterCard from "../components/team/TeamMonsterCard";
 import { useOptimizerStore } from "../store/optimizerStore";
 import { loadSwarfarmMonsters } from "../services/swarfarmService";
-import {
-  optimizeMonsterRunes,
-  requestOptimizationStop,
-  resetOptimizationStop,
-} from "../services/optimizerEngine";
 
 export default function TeamOptimizerPage() {
   const [swarfarmMonsters, setSwarfarmMonsters] = useState<Record<number, any>>(
@@ -33,8 +28,22 @@ export default function TeamOptimizerPage() {
     running: false,
     explored: 0,
     pruned: 0,
+    total: 0,
   });
 
+  const [worker, setWorker] = useState<Worker | null>(null);
+
+  const percent =
+    optimizationProgress.total > 0
+      ? Math.min(
+          100,
+          Math.round(
+            ((optimizationProgress.explored + optimizationProgress.pruned) *
+              100) /
+              optimizationProgress.total
+          )
+        )
+      : 0;
   const handleImportSwex = async (
     event: React.ChangeEvent<HTMLInputElement>
   ) => {
@@ -152,88 +161,15 @@ export default function TeamOptimizerPage() {
           </button>
 
           <button>Save</button>
+
           <button
             onClick={() => {
-              resetOptimizationStop();
-              setOptimizationProgress({
-                running: true,
-                explored: 0,
-                pruned: 0,
-              });
-              console.time("OPTIMIZE TEAM");
-              console.log("START OPTIMIZE");
-              console.log("STOCK RUNES", store.swexData?.runes?.length);
+              worker?.terminate();
 
-              console.log(
-                "MONSTER RUNES",
-                store.swexData?.unit_list?.reduce(
-                  (sum: number, unit: any) => sum + (unit.runes?.length ?? 0),
-                  0
-                )
-              );
-
-              const allRunes = [
-                ...(store.swexData?.runes ?? []),
-                ...(store.swexData?.unit_list?.flatMap(
-                  (unit: any) => unit.runes ?? []
-                ) ?? []),
-              ];
-              allRunes.forEach((rune, index) => {
-                rune.swopId = index + 1;
-              });
-              console.log("ALL RUNES", allRunes.length);
-              console.time("MAP_MONSTERS");
-              const results = store.monsters
-                .filter((monster) => store.configs[monster.id])
-                .map((monster) => {
-                  const config = store.configs[monster.id];
-                  console.log("OPTIMIZING", monster.name);
-                  console.time(`OPT_${monster.name}`);
-
-                  const monsterResults = optimizeMonsterRunes(
-                    monster,
-                    config,
-                    allRunes,
-                    ({ explored, pruned }) => {
-                      setOptimizationProgress((prev) => ({
-                        ...prev,
-                        explored,
-                        pruned,
-                      }));
-                    }
-                  );
-
-                  console.timeEnd(`OPT_${monster.name}`);
-                  ``;
-
-                  console.log("DONE", monster.name, monsterResults.length);
-
-                  return {
-                    monsterId: monster.id,
-                    monsterName: monster.name,
-                    results: monsterResults,
-                  };
-                });
-
-              console.time("SET_RESULTS");
-
-              store.setResults(results);
-              console.timeEnd("MAP_MONSTERS");
-
-              console.timeEnd("SET_RESULTS");
-              console.timeEnd("OPTIMIZE TEAM");
-              console.log("ALL MONSTERS DONE");
               setOptimizationProgress((prev) => ({
                 ...prev,
                 running: false,
               }));
-            }}
-          >
-            Optimize Team
-          </button>
-          <button
-            onClick={() => {
-              requestOptimizationStop();
             }}
           >
             Stop
@@ -275,16 +211,6 @@ export default function TeamOptimizerPage() {
           SIEGE
         </button>
       </div>
-
-      {optimizationProgress.running && (
-        <div className="import-success compact">
-          🔄 Optimisation en cours
-          {" • "}
-          Builds explorés : {optimizationProgress.explored.toLocaleString()}
-          {" • "}
-          Branches supprimées : {optimizationProgress.pruned.toLocaleString()}
-        </div>
-      )}
 
       {importStatus && (
         <div className="import-success compact">
@@ -345,6 +271,105 @@ export default function TeamOptimizerPage() {
               />
             );
           })}
+        </div>
+
+        <div className="optimizer-panel">
+          <div className="optimizer-info">
+            <div className="optimizer-value">
+              {optimizationProgress.explored.toLocaleString()}
+            </div>
+
+            <div>Builds trouvés</div>
+
+            <div className="optimizer-pruned">
+              {optimizationProgress.pruned.toLocaleString()} branches supprimées
+            </div>
+          </div>
+
+          <div className="optimizer-circle">{percent}%</div>
+
+          <button
+            onClick={() => {
+              setOptimizationProgress({
+                running: true,
+                explored: 0,
+                pruned: 0,
+                total: 0,
+              });
+              console.time("OPTIMIZE TEAM");
+              console.log("START OPTIMIZE");
+              console.log("STOCK RUNES", store.swexData?.runes?.length);
+
+              console.log(
+                "MONSTER RUNES",
+                store.swexData?.unit_list?.reduce(
+                  (sum: number, unit: any) => sum + (unit.runes?.length ?? 0),
+                  0
+                )
+              );
+
+              const allRunes = [
+                ...(store.swexData?.runes ?? []),
+                ...(store.swexData?.unit_list?.flatMap(
+                  (unit: any) => unit.runes ?? []
+                ) ?? []),
+              ];
+              allRunes.forEach((rune, index) => {
+                rune.swopId = index + 1;
+              });
+              console.log("ALL RUNES", allRunes.length);
+
+              const optimizerWorker = new Worker(
+                new URL("./optimizerWorker.ts", import.meta.url),
+                {
+                  type: "module",
+                }
+              );
+
+              setWorker(optimizerWorker);
+
+              optimizerWorker.onmessage = (event) => {
+                const data = event.data;
+
+                if (data.type === "progress") {
+                  setOptimizationProgress((prev) => ({
+                    ...prev,
+                    explored: data.explored,
+                    pruned: data.pruned,
+                    total: data.total,
+                  }));
+
+                  return;
+                }
+
+                if (data.type === "result") {
+                  store.setResults(data.results);
+
+                  setOptimizationProgress((prev) => ({
+                    ...prev,
+                    running: false,
+                  }));
+
+                  console.timeEnd("OPTIMIZE TEAM");
+                  console.log("ALL MONSTERS DONE");
+
+                  optimizerWorker.terminate();
+                }
+              };
+
+              optimizerWorker.postMessage({
+                monsters: store.monsters.filter(
+                  (monster) => store.configs[monster.id]
+                ),
+
+                configs: store.configs,
+
+                allRunes,
+              });
+            }}
+          >
+            Optimize Team
+          </button>
         </div>
       </div>
 

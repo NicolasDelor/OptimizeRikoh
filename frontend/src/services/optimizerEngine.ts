@@ -8,6 +8,8 @@ import {
   passesSetFilters,
   passesSlotFilters,
 } from "./optimizerFilters";
+import { analyzeSearchSpace } from "./searchSpaceAnalyzer";
+import { generateSetPatterns } from "./setPatternGenerator";
 
 let stopRequested = false;
 
@@ -50,8 +52,15 @@ export function optimizeMonsterRunes(
   monster: Monster,
   config: MonsterConfig,
   availableRunes: any[],
-  onProgress?: (progress: { explored: number; pruned: number }) => void
-): OptimizationResult[] {
+  onProgress?: (progress: {
+    explored: number;
+    pruned: number;
+    total: number;
+  }) => void
+): {
+  results: OptimizationResult[];
+  totalBuilds: number;
+} {
   const candidateRunes = availableRunes;
 
   console.log("INTANGIBLE", runeSetNames[25], runeSetPieces["Intangible"]);
@@ -83,6 +92,10 @@ export function optimizeMonsterRunes(
     ...(config.requiredSet3 ?? []),
   ].filter(Boolean);
 
+  const setPatterns = generateSetPatterns(requiredSets);
+
+  console.log("SET PATTERNS", setPatterns);
+
   const prioritizedSets = requiredSets.map((setName) => ({
     setName,
     pieces: runeSetPieces[setName] ?? 0,
@@ -95,7 +108,10 @@ export function optimizeMonsterRunes(
     0
   );
   if (requiredPieces > 6) {
-    return [];
+    return {
+      results: [],
+      totalBuilds: 0,
+    };
   }
 
   /*
@@ -205,6 +221,18 @@ export function optimizeMonsterRunes(
     { slot: 5, runes: slot5Runes },
     { slot: 6, runes: filteredSlot6Runes },
   ].sort((a, b) => a.runes.length - b.runes.length);
+
+  const preAnalysis = analyzeSearchSpace(monster, config, slotRunes);
+
+  if (!preAnalysis.possible) {
+    return {
+      results: [],
+      totalBuilds: 0,
+    };
+  }
+
+  console.log("PRE ANALYSIS", preAnalysis);
+  console.log("SET PATTERN COUNT", setPatterns.length);
 
   const primaryFocus = config.focus?.[0] ?? "spd";
 
@@ -473,9 +501,7 @@ export function optimizeMonsterRunes(
   }
 
   const results: OptimizationResult[] = [];
-  let statFilterTime = 0;
-  let setFilterTime = 0;
-  let slotFilterTime = 0;
+  let totalBuilds = 0;
   let pruned = 0;
   let explored = 0;
 
@@ -511,8 +537,8 @@ export function optimizeMonsterRunes(
     if (stopRequested) {
       return;
     }
-
     if (slotIndex === slotRunes.length) {
+      totalBuilds++;
       const completedRunes = buildRunes.filter(Boolean);
 
       const stats = {
@@ -567,17 +593,6 @@ export function optimizeMonsterRunes(
 
       const passesStats = passesStatFilters(stats, config);
 
-      if (
-        buildRunes[0]?.swopId === 1843 &&
-        buildRunes[1]?.swopId === 1589 &&
-        buildRunes[2]?.swopId === 2118 &&
-        buildRunes[3]?.swopId === 3372 &&
-        buildRunes[4]?.swopId === 2120 &&
-        buildRunes[5]?.swopId === 3013
-      ) {
-        console.log("SWOP BUILD STATS", stats);
-      }
-
       statFilterTime += performance.now() - statFilterStart;
 
       if (!passesStats) {
@@ -597,7 +612,7 @@ export function optimizeMonsterRunes(
       const activeSets: string[] = [];
 
       const intangibleCount = setCounts["Intangible"] ?? 0;
-      let remainingIntangible = setCounts["Intangible"] ?? 0;
+      let remainingIntangible = intangibleCount;
 
       const sets = Object.entries(setCounts)
         .filter(([setName]) => setName !== "Intangible")
@@ -635,6 +650,10 @@ export function optimizeMonsterRunes(
           remainingIntangible -= missing;
         }
 
+        if (!set.pieces) {
+          continue;
+        }
+
         const completeSets = Math.floor(effectiveCount / set.pieces);
 
         for (let i = 0; i < completeSets; i++) {
@@ -660,10 +679,11 @@ export function optimizeMonsterRunes(
 
       explored++;
 
-      if (explored % 1000 === 0) {
+      if ((explored + pruned) % 10000 === 0) {
         onProgress?.({
           explored,
           pruned,
+          total: totalPermutations,
         });
       }
 
@@ -740,31 +760,55 @@ export function optimizeMonsterRunes(
 
       const currentIds = buildRunes.filter(Boolean).map((r) => r.swopId);
 
-      if (
-        currentIds.includes(1843) &&
-        currentIds.includes(1589) &&
-        currentIds.includes(2118) &&
-        currentIds.includes(3372) &&
-        currentIds.includes(2120)
-      ) {
-        console.log("MISSING_LAST_RUNE", currentIds);
-      }
-
-      const ids = buildRunes
-        .filter(Boolean)
-        .map((r) => r.swopId)
-        .join(",");
-
       usedRuneIds.add(rune.rune_id);
 
       const setName = runeSetNames[rune.set_id];
 
-      if (rune.swopId === 3372) {
-        console.log("RUNE3372", rune.swopId, rune.slot_no, setName);
+      if (
+        requiredPieces >= 6 &&
+        setName &&
+        !requiredSetNames.has(setName) &&
+        setName !== "Intangible"
+      ) {
+        usedRuneIds.delete(rune.rune_id);
+        continue;
       }
 
       if (setName) {
         setCounts[setName] = (setCounts[setName] ?? 0) + 1;
+      }
+      const patternStillPossible =
+        requiredSets.length === 0 ||
+        setPatterns.some((pattern) => {
+          return Object.entries(setCounts).every(([set, count]) => {
+            if (set === "Intangible") {
+              return count <= pattern.intangible;
+            }
+
+            const required = pattern.required[set];
+
+            if (required === undefined) {
+              return true;
+            }
+
+            return count <= required;
+          });
+        });
+
+      if (!patternStillPossible) {
+        pruned++;
+
+        if (setName) {
+          setCounts[setName]--;
+
+          if (setCounts[setName] === 0) {
+            delete setCounts[setName];
+          }
+        }
+
+        usedRuneIds.delete(rune.rune_id);
+
+        continue;
       }
 
       const nextStats = addRuneStats(partialStats, rune);
@@ -900,6 +944,13 @@ export function optimizeMonsterRunes(
    * que le moteur ralentisse.
    */
 
+  const totalPermutations = slotRunes.reduce(
+    (total, slot) => total * slot.runes.length,
+    1
+  );
+
+  console.log("TOTAL_PERMUTATIONS", totalPermutations);
+
   explore(
     0,
     new Array(6),
@@ -923,11 +974,12 @@ export function optimizeMonsterRunes(
     new Set<number>()
   );
 
-  const sortStart = performance.now();
-
   results.sort((a, b) => compareResults(a, b, config.focus));
 
-  return results;
+  return {
+    results,
+    totalBuilds,
+  };
 }
 export function optimizeMonster(
   monster: Monster,

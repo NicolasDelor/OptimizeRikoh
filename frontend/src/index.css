@@ -900,3 +900,54 @@ input[type="number"] {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
 }
+.optimize-progress {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.optimize-progress-circle {
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  border: 4px solid orange;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: orange;
+  font-size: 28px;
+  font-weight: 700;
+}
+.optimizer-panel {
+  margin-top: 20px;
+  background: #050b14;
+  border: 1px solid #ff9900;
+  padding: 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.optimizer-value {
+  font-size: 32px;
+  color: white;
+}
+
+.optimizer-pruned {
+  margin-top: 8px;
+  color: #8b95a7;
+}
+
+.optimizer-circle {
+  width: 90px;
+  height: 90px;
+  border: 4px solid #ff9900;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #ff9900;
+  font-size: 32px;
+  font-weight: bold;
+}
