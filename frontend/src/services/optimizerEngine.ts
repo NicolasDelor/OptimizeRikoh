@@ -280,6 +280,45 @@ export function optimizeMonsterRunes(
     slot.runes.sort(runeSorter);
   }
 
+  function filterDominatedRunes(runes: any[]) {
+    return runes.filter((candidate, index) => {
+      return !runes.some((other, otherIndex) => {
+        if (index === otherIndex) {
+          return false;
+        }
+
+        return (
+          (other.cachedHp ?? 0) >= (candidate.cachedHp ?? 0) &&
+          (other.cachedAtk ?? 0) >= (candidate.cachedAtk ?? 0) &&
+          (other.cachedDef ?? 0) >= (candidate.cachedDef ?? 0) &&
+          (other.cachedSpd ?? 0) >= (candidate.cachedSpd ?? 0) &&
+          (other.cachedCr ?? 0) >= (candidate.cachedCr ?? 0) &&
+          (other.cachedCd ?? 0) >= (candidate.cachedCd ?? 0) &&
+          (other.cachedAcc ?? 0) >= (candidate.cachedAcc ?? 0) &&
+          (other.cachedRes ?? 0) >= (candidate.cachedRes ?? 0) &&
+          ((other.cachedHp ?? 0) > (candidate.cachedHp ?? 0) ||
+            (other.cachedAtk ?? 0) > (candidate.cachedAtk ?? 0) ||
+            (other.cachedDef ?? 0) > (candidate.cachedDef ?? 0) ||
+            (other.cachedSpd ?? 0) > (candidate.cachedSpd ?? 0) ||
+            (other.cachedCr ?? 0) > (candidate.cachedCr ?? 0) ||
+            (other.cachedCd ?? 0) > (candidate.cachedCd ?? 0) ||
+            (other.cachedAcc ?? 0) > (candidate.cachedAcc ?? 0) ||
+            (other.cachedRes ?? 0) > (candidate.cachedRes ?? 0))
+        );
+      });
+    });
+  }
+
+  for (const slot of slotRunes) {
+    const before = slot.runes.length;
+
+    slot.runes = filterDominatedRunes(slot.runes);
+
+    console.log(
+      `SLOT ${slot.slot} DOMINANCE FILTER : ${before} -> ${slot.runes.length}`
+    );
+  }
+
   type PartialStats = {
     hp: number;
     atk: number;
@@ -589,11 +628,7 @@ export function optimizeMonsterRunes(
           monster.res + partialStats.res + getSetBonus(completedRunes, "res"),
       };
 
-      const statFilterStart = performance.now();
-
       const passesStats = passesStatFilters(stats, config);
-
-      statFilterTime += performance.now() - statFilterStart;
 
       if (!passesStats) {
         if (
@@ -665,17 +700,9 @@ export function optimizeMonsterRunes(
         activeSets.push("Intangible");
       }
 
-      const setFilterStart = performance.now();
-
       const passesSets = passesSetFilters(activeSets, config);
 
-      setFilterTime += performance.now() - setFilterStart;
-
       if (!passesSets) return;
-
-      const slotFilterStart = performance.now();
-
-      slotFilterTime += performance.now() - slotFilterStart;
 
       explored++;
 
@@ -757,8 +784,6 @@ export function optimizeMonsterRunes(
         continue;
       }
       buildRunes[slotRunes[slotIndex].slot - 1] = rune;
-
-      const currentIds = buildRunes.filter(Boolean).map((r) => r.swopId);
 
       usedRuneIds.add(rune.rune_id);
 
