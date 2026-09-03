@@ -9,7 +9,6 @@ import {
   passesSlotFilters,
 } from "./optimizerFilters";
 import { analyzeSearchSpace } from "./searchSpaceAnalyzer";
-import { generateSetPatterns } from "./setPatternGenerator";
 
 let stopRequested = false;
 
@@ -92,16 +91,18 @@ export function optimizeMonsterRunes(
     ...(config.requiredSet3 ?? []),
   ].filter(Boolean);
 
-  const setPatterns = generateSetPatterns(requiredSets);
-
-  console.log("SET PATTERNS", setPatterns);
-
   const prioritizedSets = requiredSets.map((setName) => ({
     setName,
     pieces: runeSetPieces[setName] ?? 0,
   }));
 
   const requiredSetNames = new Set(prioritizedSets.map((s) => s.setName));
+
+  const requiredCounts: Record<string, number> = {};
+
+  for (const set of requiredSets) {
+    requiredCounts[set] = (requiredCounts[set] ?? 0) + 1;
+  }
 
   const requiredPieces = requiredSets.reduce(
     (sum, setName) => sum + (runeSetPieces[setName] ?? 0),
@@ -232,7 +233,6 @@ export function optimizeMonsterRunes(
   }
 
   console.log("PRE ANALYSIS", preAnalysis);
-  console.log("SET PATTERN COUNT", setPatterns.length);
 
   const primaryFocus = config.focus?.[0] ?? "spd";
 
@@ -510,17 +510,12 @@ export function optimizeMonsterRunes(
    * Cette optimisation ne supprime jamais une
    * combinaison valide.
    */
+
   function canStillCompleteSets(
     setCounts: Record<string, number>,
-    remainingSlots: number,
-    requiredSets: string[]
+    remainingSlots: number
   ) {
-    const requiredCounts: Record<string, number> = {};
-
-    requiredSets.forEach((set) => {
-      if (!set) return;
-      requiredCounts[set] = (requiredCounts[set] ?? 0) + 1;
-    });
+    setChecks++;
 
     const intangibleCount = setCounts["Intangible"] ?? 0;
 
@@ -541,8 +536,16 @@ export function optimizeMonsterRunes(
 
   const results: OptimizationResult[] = [];
   let totalBuilds = 0;
+  const MAX_BUILDS = 1000000;
+
   let pruned = 0;
+  let prunedSets = 0;
+  let prunedMinimums = 0;
+  let prunedStats = 0;
+  let prunedScore = 0;
+  let setChecks = 0;
   let explored = 0;
+  let setBonusCalculations = 0;
 
   function addRuneStats(stats: PartialStats, rune: any): PartialStats {
     return {
@@ -573,11 +576,29 @@ export function optimizeMonsterRunes(
     usedRuneIds: Set<number>
   ) {
     recursionCalls.value++;
+    if (recursionCalls.value % 1000000 === 0) {
+      console.log(
+        "CALLS",
+        recursionCalls.value,
+        "BUILDS",
+        totalBuilds,
+        "EXPLORED",
+        explored,
+        "PRUNED",
+        pruned
+      );
+    }
     if (stopRequested) {
       return;
     }
     if (slotIndex === slotRunes.length) {
       totalBuilds++;
+
+      if (totalBuilds >= MAX_BUILDS) {
+        stopRequested = true;
+        return;
+      }
+
       const completedRunes = buildRunes.filter(Boolean);
 
       const stats = {
@@ -612,25 +633,22 @@ export function optimizeMonsterRunes(
           monster.spd +
           partialStats.spd +
           Math.round(
-            ((monster.baseSpd ?? monster.spd) *
-              getSetBonus(completedRunes, "spd")) /
-              100
+            ((monster.baseSpd ?? monster.spd) * partialStats.setSpd) / 100
           ),
 
-        cr: monster.cr + partialStats.cr + getSetBonus(completedRunes, "cr"),
+        cr: monster.cr + partialStats.cr + partialStats.setCr,
 
         cd: monster.cd + partialStats.cd,
 
-        acc:
-          monster.acc + partialStats.acc + getSetBonus(completedRunes, "acc"),
+        acc: monster.acc + partialStats.acc + partialStats.setAcc,
 
-        res:
-          monster.res + partialStats.res + getSetBonus(completedRunes, "res"),
+        res: monster.res + partialStats.res + partialStats.setRes,
       };
 
       const passesStats = passesStatFilters(stats, config);
 
       if (!passesStats) {
+        prunedStats++;
         if (
           buildRunes[0]?.swopId === 1843 &&
           buildRunes[1]?.swopId === 1589 &&
@@ -809,58 +827,31 @@ export function optimizeMonsterRunes(
       if (setName) {
         setCounts[setName] = (setCounts[setName] ?? 0) + 1;
       }
-      const patternStillPossible =
-        requiredSets.length === 0 ||
-        setPatterns.some((pattern) => {
-          return Object.entries(setCounts).every(([set, count]) => {
-            if (set === "Intangible") {
-              return count <= pattern.intangible;
-            }
-
-            const required = pattern.required[set];
-
-            if (required === undefined) {
-              return true;
-            }
-
-            return count <= required;
-          });
-        });
-
-      if (!patternStillPossible) {
-        pruned++;
-
-        if (setName) {
-          setCounts[setName]--;
-
-          if (setCounts[setName] === 0) {
-            delete setCounts[setName];
-          }
-        }
-
-        usedRuneIds.delete(rune.rune_id);
-
-        continue;
-      }
 
       const nextStats = addRuneStats(partialStats, rune);
 
       const pieces = runeSetPieces[setName];
 
       if (setName && pieces && setCounts[setName] % pieces === 0) {
-        const setBonusRunes = buildRunes.filter(Boolean);
+        setBonusCalculations++;
 
-        nextStats.setSpd +=
-          getSetBonus(setBonusRunes, "spd") - partialStats.setSpd;
+        switch (setName) {
+          case "Swift":
+            nextStats.setSpd += 25;
+            break;
 
-        nextStats.setCr +=
-          getSetBonus(setBonusRunes, "cr") - partialStats.setCr;
+          case "Blade":
+            nextStats.setCr += 12;
+            break;
 
-        nextStats.setAcc +=
-          getSetBonus(setBonusRunes, "acc") - partialStats.setAcc;
+          case "Focus":
+            nextStats.setAcc += 20;
+            break;
 
-        nextStats.setRes +=
-          getSetBonus(setBonusRunes, "res") - partialStats.setRes;
+          case "Endure":
+            nextStats.setRes += 20;
+            break;
+        }
       }
 
       const remainingSlots = slotRunes.length - (slotIndex + 1);
@@ -876,8 +867,9 @@ export function optimizeMonsterRunes(
         console.log("SWOP REJECTED BY SETS");
       }
 
-      if (!canStillCompleteSets(setCounts, remainingSlots, requiredSets)) {
+      if (!canStillCompleteSets(setCounts, remainingSlots)) {
         pruned++;
+        prunedSets++;
         if (setName) {
           setCounts[setName]--;
 
@@ -930,6 +922,7 @@ export function optimizeMonsterRunes(
         )
       ) {
         pruned++;
+        prunedMinimums++;
 
         if (setName) {
           setCounts[setName]--;
@@ -951,6 +944,40 @@ export function optimizeMonsterRunes(
       ) {
       }
 
+      if (results.length >= 100000) {
+        const worst = results[results.length - 1];
+
+        const maxPossibleScore =
+          (monster.spd +
+            nextStats.spd +
+            remainingMax[slotIndex].spd +
+            maxSwiftBonus) *
+            10 +
+          (monster.acc +
+            nextStats.acc +
+            remainingMax[slotIndex].acc +
+            maxFocusBonus +
+            maxAccuracyBonus) *
+            5;
+
+        if (maxPossibleScore < worst.score) {
+          pruned++;
+          prunedScore++;
+
+          if (setName) {
+            setCounts[setName]--;
+
+            if (setCounts[setName] === 0) {
+              delete setCounts[setName];
+            }
+          }
+
+          usedRuneIds.delete(rune.rune_id);
+
+          continue;
+        }
+      }
+
       explore(slotIndex + 1, buildRunes, setCounts, nextStats, usedRuneIds);
 
       if (setName) {
@@ -963,18 +990,6 @@ export function optimizeMonsterRunes(
       usedRuneIds.delete(rune.rune_id);
     }
   }
-
-  /*
-   * Métrique de diagnostic.
-   *
-   * Permet d'estimer la taille théorique de
-   * l'espace de recherche avant pruning :
-   *
-   * slot1 × slot2 × slot3 × slot4 × slot5 × slot6
-   *
-   * Si ce nombre devient énorme, il est normal
-   * que le moteur ralentisse.
-   */
 
   const totalPermutations = slotRunes.reduce(
     (total, slot) => total * slot.runes.length,
@@ -1007,6 +1022,23 @@ export function optimizeMonsterRunes(
   );
 
   results.sort((a, b) => compareResults(a, b, config.focus));
+
+  console.log(
+    "SETS",
+    prunedSets,
+    "MINIMUMS",
+    prunedMinimums,
+    "SCORE",
+    prunedScore,
+    "FINAL_STATS",
+    prunedStats
+  );
+
+  console.log("EXPLORED", explored, "PRUNED", pruned);
+
+  console.log("SET_BONUS_CALCULATIONS", setBonusCalculations);
+
+  console.log("SET_CHECKS", setChecks);
 
   return {
     results,
