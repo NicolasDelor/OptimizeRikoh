@@ -5,6 +5,7 @@ interface Props {
   results: OptimizationResult[];
 
   visibleColumns: {
+    runes: boolean;
     sets: boolean;
     hp: boolean;
     atk: boolean;
@@ -17,6 +18,7 @@ interface Props {
     ehp: boolean;
     efficiency: boolean;
     slots: boolean;
+    damage: boolean;
   };
 }
 
@@ -78,7 +80,7 @@ export default function MonsterResultsTable({
         <thead>
           <tr>
             <th>#</th>
-            <th>RUNES</th>
+            {visibleColumns.runes && <th>RUNES</th>}
 
             {visibleColumns.sets && <th>SETS</th>}
 
@@ -106,23 +108,25 @@ export default function MonsterResultsTable({
               <th onClick={() => handleSort("cd")}>CD{getSortIcon("cd")}</th>
             )}
 
-            {visibleColumns.acc && (
-              <th onClick={() => handleSort("acc")}>ACC{getSortIcon("acc")}</th>
-            )}
-
             {visibleColumns.res && (
               <th onClick={() => handleSort("res")}>RES{getSortIcon("res")}</th>
+            )}
+
+            {visibleColumns.acc && (
+              <th onClick={() => handleSort("acc")}>ACC{getSortIcon("acc")}</th>
             )}
 
             {visibleColumns.ehp && (
               <th onClick={() => handleSort("ehp")}>EHP{getSortIcon("ehp")}</th>
             )}
 
-            {visibleColumns.efficiency && (
-              <th onClick={() => handleSort("efficiency")}>
-                EFF{getSortIcon("efficiency")}
+            {visibleColumns.damage && (
+              <th onClick={() => handleSort("score")}>
+                DMG{getSortIcon("score" as keyof OptimizationResult)}
               </th>
             )}
+
+            {visibleColumns.damage && <td>{Math.round(result.score)}</td>}
 
             {visibleColumns.slots && <th>2/4/6</th>}
           </tr>
@@ -133,7 +137,7 @@ export default function MonsterResultsTable({
             <tr key={index}>
               <td>{(currentPage - 1) * PAGE_SIZE + index + 1}</td>
 
-              <td>{result.runeIds.join(",")}</td>
+              {visibleColumns.runes && <td>{result.runeIds.join(",")}</td>}
 
               {visibleColumns.sets && <td>{result.sets.join(", ")}</td>}
 
@@ -151,9 +155,9 @@ export default function MonsterResultsTable({
 
               {visibleColumns.cd && <td>{Math.round(result.cd)}</td>}
 
-              {visibleColumns.acc && <td>{Math.round(result.acc)}</td>}
-
               {visibleColumns.res && <td>{Math.round(result.res)}</td>}
+
+              {visibleColumns.acc && <td>{Math.round(result.acc)}</td>}
 
               {visibleColumns.ehp && <td>{Math.round(result.ehp)}</td>}
 

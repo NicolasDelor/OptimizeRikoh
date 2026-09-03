@@ -53,11 +53,10 @@ body {
   position: relative;
   background: #1f2937;
   border-radius: 12px;
-  padding: 12px;
+  padding: 10px;
 }
 
 button {
-  padding: 10px 14px;
   cursor: pointer;
 }
 
@@ -169,8 +168,8 @@ button {
 }
 
 .monster-image-placeholder {
-  width: 80px;
-  height: 80px;
+  width: 64px;
+  height: 64px;
   background: #fff;
   border: 2px solid #2e3b52;
   border-radius: 4px;
@@ -213,7 +212,7 @@ button {
 
 .stat-row {
   display: grid;
-  grid-template-columns: 35px 45px 55px 40px 40px;
+  grid-template-columns: 32px 42px 52px 40px 40px;
   gap: 4px;
   align-items: center;
 }
@@ -227,7 +226,7 @@ button {
 .stat-value {
   text-align: center;
   color: #fff;
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 600;
 }
 
@@ -371,12 +370,6 @@ input[type="number"] {
 }
 
 /* RUNE FILTERS */
-
-.monster-runes-configuration {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 0px;
-}
 
 .monster-runes-configuration::after {
   content: "";
@@ -561,7 +554,7 @@ input[type="number"] {
 
 .results-table th {
   background: #081018;
-  color: #ffb74d;
+  color: #33d6ff;
   padding: 12px;
   text-align: center;
   border-bottom: 1px solid #233244;
@@ -569,6 +562,7 @@ input[type="number"] {
 
 .results-table td {
   padding: 10px;
+
   text-align: center;
   border-bottom: 1px solid #233244;
 }
@@ -578,7 +572,7 @@ input[type="number"] {
 }
 
 .results-table tbody tr:hover {
-  background: rgba(255, 183, 77, 0.08);
+  background: rgba(51, 214, 255, 0.08);
 }
 
 .spd-cell {
@@ -695,184 +689,11 @@ input[type="number"] {
   font-weight: 600;
 }
 
-.focus-panel {
-  background: #0f172a;
-  border: 1px solid #1e3a5f;
-  border-radius: 8px;
-  overflow: hidden;
-}
-
-.focus-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-
-  padding: 16px;
-  background: #111c2f;
-  border-bottom: 1px solid #1e3a5f;
-}
-
-.focus-title {
-  color: #33d6ff;
-  font-size: 18px;
-  font-weight: 600;
-  letter-spacing: 0.5px;
-}
-
-.focus-clear {
-  padding: 6px 10px;
-
-  background: #1a2436;
-  border: 1px solid #2f4b70;
-  border-radius: 4px;
-
-  color: #cfefff;
-}
-
-.focus-clear:hover {
-  background: #223756;
-  border-color: #33d6ff;
-}
-
-.focus-selected {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-
-  min-height: 44px;
-  padding: 10px 12px;
-
-  background: #0b1422;
-  border-bottom: 1px solid #1e3a5f;
-}
-
-.focus-tag {
-  padding: 3px 8px;
-
-  background: #1c2a40;
-  border: 1px solid #33527d;
-  border-radius: 3px;
-
-  color: #dff6ff;
-  font-size: 12px;
-
-  cursor: pointer;
-}
-
-.focus-tag:hover {
-  border-color: #33d6ff;
-  background: #243754;
-}
-
-.focus-dropdown {
-  width: 100%;
-  height: 46px;
-
-  padding: 0 12px;
-
-  background: #08111f;
-  color: #dff6ff;
-
-  border: none;
-  border-top: 1px solid #33d6ff;
-
-  font-size: 14px;
-}
-
-.focus-dropdown:hover {
-  background: #0d1728;
-}
-
-.focus-dropdown:focus {
-  outline: none;
-  box-shadow: inset 0 0 0 1px #33d6ff;
-}
-
-.focus-dropdown option {
-  background: #08111f;
-  color: #dff6ff;
-}
-
-.focus-dropdown-container {
-  position: relative;
-}
-
-.focus-search {
-  width: 100%;
-  height: 46px;
-
-  background: #08111f;
-  border: 1px solid #33d6ff;
-
-  color: #dff6ff;
-  font-size: 14px;
-}
-
-.focus-search:focus {
-  outline: none;
-  box-shadow: inset 0 0 0 1px #33d6ff;
-}
-
-.focus-options {
-  position: absolute;
-  top: 100%;
-  left: 0;
-  right: 0;
-
-  z-index: 100;
-
-  background: #08111f;
-  border: 1px solid #33d6ff;
-  border-top: none;
-
-  max-height: 250px;
-  overflow-y: auto;
-}
-
-.focus-option {
-  color: #dff6ff;
-  cursor: pointer;
-}
-
-.focus-option:hover {
-  background: #1c2a40;
-}
-
-.focus-options {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  margin-top: 8px;
-}
-
-.focus-option {
-  padding: 4px 8px;
-  border: 1px solid #2d4678;
-  background: #182644;
-  color: #fff;
-  border-radius: 4px;
-  cursor: pointer;
-}
-
-.focus-option {
-  width: 100%;
-}
-.monster-runes-configuration {
-  display: flex;
-  gap: 8px;
-}
-
-.monster-runes-configuration {
-  display: grid;
-  grid-template-columns: 1fr 1fr 1fr;
-  gap: 0px;
-}
-
 .monster-runes-configuration {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 4px;
 }
-
 .slot-select-group {
   display: flex;
   flex-direction: column;
@@ -911,18 +732,18 @@ input[type="number"] {
   width: 120px;
   height: 120px;
   border-radius: 50%;
-  border: 4px solid orange;
+  border: 4px solid #33d6ff;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: orange;
+  color: #33d6ff;
   font-size: 28px;
   font-weight: 700;
 }
 .optimizer-panel {
   margin-top: 20px;
-  background: #050b14;
-  border: 1px solid #ff9900;
+  background: #0f172a;
+  border: 1px solid #1e3a5f;
   padding: 20px;
   display: flex;
   justify-content: space-between;
@@ -942,12 +763,160 @@ input[type="number"] {
 .optimizer-circle {
   width: 90px;
   height: 90px;
-  border: 4px solid #ff9900;
+  border: 4px solid #33d6ff;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #ff9900;
+  color: #33d6ff;
   font-size: 32px;
   font-weight: bold;
+}
+.focus-panel {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.focus-label {
+  color: #8ea6c9;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.search-depth-input {
+  width: 60px;
+  height: 32px;
+
+  background: #182238;
+  border: 1px solid #2f3c57;
+
+  color: #fff;
+  text-align: center;
+
+  border-radius: 4px;
+}
+
+.search-depth-input:focus {
+  outline: none;
+  border-color: #33d6ff;
+  box-shadow: 0 0 0 1px #33d6ff;
+}
+
+button {
+  padding: 10px 14px;
+
+  background: #182238;
+  border: 1px solid #2f3c57;
+  border-radius: 6px;
+
+  color: #fff;
+  font-weight: 600;
+
+  cursor: pointer;
+
+  transition: all 0.15s ease;
+}
+
+button:hover {
+  background: #22304a;
+  border-color: #33d6ff;
+  color: #33d6ff;
+}
+
+button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.focus-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+}
+.quick-builds {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.quick-build-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+
+  min-height: 34px;
+  padding: 4px 6px;
+
+  background: #081321;
+  border: 1px solid #20375f;
+  border-radius: 6px;
+
+  cursor: pointer;
+  padding: 5 px;
+}
+
+.quick-build-button:hover {
+  border-color: #33d6ff;
+}
+
+.quick-build-icon {
+  width: 24px;
+  height: 24px;
+}
+
+.search-depth-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 10px;
+}
+.quick-build-icon {
+  width: 16px;
+  height: 16px;
+  object-fit: contain;
+}
+
+.quick-build-icon {
+  width: 16px;
+  height: 16px;
+  object-fit: contain;
+}
+.focus-row,
+.search-depth-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.focus-row .css-b62m3t-container {
+  flex: 1;
+}
+
+.focus-label {
+  min-width: 90px;
+  color: #8ea6c9;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.search-depth-input {
+  width: 80px;
+  height: 32px;
+
+  background: #182238;
+  border: 1px solid #2f3c57;
+  border-radius: 4px;
+
+  color: #fff;
+  text-align: center;
+}
+
+.search-depth-row {
+  justify-content: flex-end;
 }

@@ -60,6 +60,7 @@ export function optimizeMonsterRunes(
   results: OptimizationResult[];
   totalBuilds: number;
 } {
+  console.log("START MONSTER", monster.name, "STOP", stopRequested);
   const candidateRunes = availableRunes;
 
   console.log("INTANGIBLE", runeSetNames[25], runeSetPieces["Intangible"]);
@@ -108,7 +109,11 @@ export function optimizeMonsterRunes(
     (sum, setName) => sum + (runeSetPieces[setName] ?? 0),
     0
   );
+
+  console.log("REQUIRED SETS", monster.name, requiredSets, requiredPieces);
   if (requiredPieces > 6) {
+    console.log("REJECTED REQUIRED PIECES", monster.name, requiredPieces);
+
     return {
       results: [],
       totalBuilds: 0,
@@ -225,6 +230,8 @@ export function optimizeMonsterRunes(
 
   const preAnalysis = analyzeSearchSpace(monster, config, slotRunes);
 
+  console.log("PRE ANALYSIS", monster.name, preAnalysis);
+
   if (!preAnalysis.possible) {
     return {
       results: [],
@@ -317,6 +324,32 @@ export function optimizeMonsterRunes(
     console.log(
       `SLOT ${slot.slot} DOMINANCE FILTER : ${before} -> ${slot.runes.length}`
     );
+  }
+  const searchDepth = config.searchDepth ?? 10;
+
+  for (const slot of slotRunes) {
+    if (slot.runes.length > searchDepth) {
+      console.log(
+        "SLOT",
+        slot.slot,
+        "TOP RUNES",
+        slot.runes.slice(0, 5).map((r) => ({
+          runeId: r.rune_id,
+          swopId: r.swopId,
+          set: runeSetNames[r.set_id],
+          spd: r.cachedSpd,
+          hp: r.cachedHp,
+          atk: r.cachedAtk,
+          def: r.cachedDef,
+        }))
+      );
+
+      console.log(
+        `SEARCH DEPTH SLOT ${slot.slot} : ${slot.runes.length} -> ${searchDepth}`
+      );
+
+      slot.runes = slot.runes.slice(0, searchDepth);
+    }
   }
 
   type PartialStats = {
@@ -536,8 +569,6 @@ export function optimizeMonsterRunes(
 
   const results: OptimizationResult[] = [];
   let totalBuilds = 0;
-  const MAX_BUILDS = 1000000;
-
   let pruned = 0;
   let prunedSets = 0;
   let prunedMinimums = 0;
@@ -568,6 +599,8 @@ export function optimizeMonsterRunes(
 
   const recursionCalls = { value: 0 };
 
+  const RESULT_LIMIT = 100000;
+
   function explore(
     slotIndex: number,
     buildRunes: any[],
@@ -576,7 +609,11 @@ export function optimizeMonsterRunes(
     usedRuneIds: Set<number>
   ) {
     recursionCalls.value++;
-    if (recursionCalls.value % 1000000 === 0) {
+    if (results.length >= RESULT_LIMIT) {
+      stopRequested = true;
+      return;
+    }
+    if (recursionCalls.value % 10000 === 0) {
       console.log(
         "CALLS",
         recursionCalls.value,
@@ -589,14 +626,14 @@ export function optimizeMonsterRunes(
       );
     }
     if (stopRequested) {
+      console.log("STOP REQUESTED", monster.name);
       return;
     }
     if (slotIndex === slotRunes.length) {
       totalBuilds++;
 
-      if (totalBuilds >= MAX_BUILDS) {
-        stopRequested = true;
-        return;
+      if (totalBuilds % 100000 === 0) {
+        console.log("TERMINAL BUILDS", totalBuilds);
       }
 
       const completedRunes = buildRunes.filter(Boolean);
@@ -777,7 +814,7 @@ export function optimizeMonsterRunes(
         score,
       };
 
-      if (results.length >= 100000) {
+      if (results.length >= RESULT_LIMIT) {
         results.sort((a, b) => compareResults(a, b, config.focus));
 
         const worst = results[results.length - 1];
@@ -798,6 +835,9 @@ export function optimizeMonsterRunes(
     }
 
     for (const rune of slotRunes[slotIndex].runes) {
+      if (stopRequested) {
+        return;
+      }
       /*
        * Une même rune ne peut pas être équipée
        * plusieurs fois sur un même monstre.
@@ -980,6 +1020,10 @@ export function optimizeMonsterRunes(
 
       explore(slotIndex + 1, buildRunes, setCounts, nextStats, usedRuneIds);
 
+      if (stopRequested) {
+        return;
+      }
+
       if (setName) {
         setCounts[setName]--;
 
@@ -996,8 +1040,24 @@ export function optimizeMonsterRunes(
     1
   );
 
-  console.log("TOTAL_PERMUTATIONS", totalPermutations);
+  console.log(
+    "SLOT SUMMARY",
+    slotRunes.map((slot) => ({
+      slot: slot.slot,
+      count: slot.runes.length,
+      focus: primaryFocus,
+      bestRune: slot.runes[0]
+        ? {
+            swopId: slot.runes[0].swopId,
+            set: runeSetNames[slot.runes[0].set_id],
+            spd: slot.runes[0].cachedSpd,
+          }
+        : null,
+    }))
+  );
 
+  console.log("TOTAL_PERMUTATIONS", totalPermutations);
+  console.log("BEFORE EXPLORE", monster.name, "STOP", stopRequested);
   explore(
     0,
     new Array(6),
@@ -1020,7 +1080,14 @@ export function optimizeMonsterRunes(
     },
     new Set<number>()
   );
-
+  console.log(
+    "AFTER EXPLORE",
+    monster.name,
+    "RESULTS",
+    results.length,
+    "BUILDS",
+    totalBuilds
+  );
   results.sort((a, b) => compareResults(a, b, config.focus));
 
   console.log(

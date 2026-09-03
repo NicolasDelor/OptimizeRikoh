@@ -160,7 +160,10 @@ export function getActiveSets(runes: any[]) {
     }
   });
 
-  if ((counts["Intangible"] ?? 0) > 0) {
+  if (
+    (counts["Intangible"] ?? 0) > 0 &&
+    remainingIntangible === counts["Intangible"]
+  ) {
     activeSets.push("Intangible");
   }
   return activeSets;

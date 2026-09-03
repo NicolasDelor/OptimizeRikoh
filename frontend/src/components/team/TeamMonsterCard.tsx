@@ -110,11 +110,29 @@ export default function TeamMonsterCard({
 
   const runes = getRunesForMode(monster, importMode, swexData);
 
+  console.log(monster.name, getActiveSets(runes));
   const importedSets = getActiveSets(runes);
 
   const importedSet1 = importedSets[0] ? [importedSets[0]] : [];
   const importedSet2 = importedSets[1] ? [importedSets[1]] : [];
   const importedSet3 = importedSets[2] ? [importedSets[2]] : [];
+
+  const quickBuilds = [
+    ["Swift", "Will"],
+    ["Violent", "Will"],
+    ["Violent", "Revenge"],
+    ["Violent", "Nemesis"],
+    ["Nemesis", "Nemesis", "Will"],
+    ["Rage", "Blade"],
+  ];
+
+  const applyQuickBuild = (sets: string[]) => {
+    onConfigChange?.({
+      requiredSet1: sets[0] ? [sets[0]] : [],
+      requiredSet2: sets[1] ? [sets[1]] : [],
+      requiredSet3: sets[2] ? [sets[2]] : [],
+    });
+  };
 
   const importedSlot2 =
     mainStatNames[runes.find((r: any) => r.slot_no === 2)?.pri_eff?.[0]] ?? "";
@@ -284,15 +302,31 @@ export default function TeamMonsterCard({
         </div>
 
         <div>
-          <div className="monster-name">{monster.name}</div>
-          <div className="monster-rune-sets">
-            {getActiveSets(runes).map((setId, index) => (
-              <img
-                key={`${setId}-${index}`}
-                src={runeSetIcons[setId]}
-                alt={setId}
-                className="rune-set-icon"
-              />
+          <div className="quick-builds">
+            {quickBuilds.map((build, index) => (
+              <button
+                key={index}
+                type="button"
+                className="quick-build-button"
+                onClick={() => applyQuickBuild(build)}
+              >
+                {build.map((setName, i) => {
+                  const iconEntry = Object.entries(runeSetNames).find(
+                    ([, value]) => value === setName
+                  );
+
+                  const setId = iconEntry ? Number(iconEntry[0]) : 0;
+
+                  return (
+                    <img
+                      key={`${setName}-${i}`}
+                      src={runeSetIcons[setId]}
+                      alt={setName}
+                      className="quick-build-icon"
+                    />
+                  );
+                })}
+              </button>
             ))}
           </div>
         </div>
@@ -313,6 +347,52 @@ export default function TeamMonsterCard({
               onSpeedOrderChange?.(value);
             }
           }}
+        />
+      </div>
+
+      <div className="focus-row">
+        <span className="focus-label">Focus</span>
+
+        <Select
+          isMulti
+          closeMenuOnSelect={false}
+          hideSelectedOptions
+          menuPortalTarget={document.body}
+          menuPosition="fixed"
+          placeholder="Focus..."
+          options={focusStats.map((stat) => ({
+            value: stat,
+            label: stat.toUpperCase(),
+          }))}
+          value={focusList.map((stat: string) => ({
+            value: stat,
+            label: stat.toUpperCase(),
+          }))}
+          isOptionDisabled={() => focusList.length >= MAX_FOCUS}
+          onChange={(selectedOptions) =>
+            onConfigChange?.({
+              focus: selectedOptions
+                ? selectedOptions.map((o: any) => o.value)
+                : [],
+            })
+          }
+          styles={slotStyles}
+        />
+      </div>
+
+      <div className="search-depth-row">
+        <span className="focus-label">Search Depth</span>
+
+        <input
+          className="search-depth-input"
+          type="number"
+          min="1"
+          value={config.searchDepth ?? 5000}
+          onChange={(e) =>
+            onConfigChange?.({
+              searchDepth: Number(e.target.value) || 5000,
+            })
+          }
         />
       </div>
 
@@ -484,32 +564,6 @@ export default function TeamMonsterCard({
             styles={slotStyles}
           />
         </div>
-      </div>
-      <div className="focus-panel">
-        <Select
-          isMulti
-          closeMenuOnSelect={false}
-          hideSelectedOptions
-          placeholder="Focus"
-          menuPortalTarget={document.body}
-          menuPosition="fixed"
-          options={focusStats.map((stat) => ({
-            value: stat,
-            label: stat.toUpperCase(),
-          }))}
-          value={focusList.map((stat: string) => ({
-            value: stat,
-            label: stat.toUpperCase(),
-          }))}
-          onChange={(selectedOptions) => {
-            onConfigChange?.({
-              focus: selectedOptions
-                ? selectedOptions.map((option: any) => option.value)
-                : [],
-            });
-          }}
-          styles={slotStyles}
-        />
       </div>
 
       <div className="monster-stats">

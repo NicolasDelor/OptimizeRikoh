@@ -14,6 +14,68 @@ export default function TeamOptimizerPage() {
     loadSwarfarmMonsters().then(setSwarfarmMonsters);
   }, []);
 
+  useEffect(() => {
+    const cached = localStorage.getItem("swexData");
+
+    if (!cached) {
+      return;
+    }
+
+    const data = JSON.parse(cached);
+
+    store.setSwexData(data);
+
+    const monsters =
+      data.unit_list?.map((unit: any) => {
+        const swarfarmMonster = swarfarmMonsters[unit.unit_master_id];
+
+        const sameMonsters = data.unit_list.filter(
+          (u: any) => u.unit_master_id === unit.unit_master_id
+        );
+
+        const duplicateNumber =
+          sameMonsters.findIndex((u: any) => u.unit_id === unit.unit_id) + 1;
+
+        const monsterName =
+          swarfarmMonster?.name ?? String(unit.unit_master_id);
+
+        return {
+          id: unit.unit_master_id,
+          unitId: unit.unit_id,
+          duplicateNumber,
+          baseHp: swarfarmMonster?.base_hp,
+          baseAtk: swarfarmMonster?.base_attack,
+          baseDef: swarfarmMonster?.base_defense,
+          baseSpd: swarfarmMonster?.speed,
+          name:
+            duplicateNumber === 1
+              ? monsterName
+              : `${monsterName} ${duplicateNumber}`,
+          imageUrl: swarfarmMonster
+            ? `https://swarfarm.com/static/herders/images/monsters/${swarfarmMonster.image_filename}`
+            : undefined,
+          hp: swarfarmMonster?.base_hp ?? unit.con,
+          atk: unit.atk,
+          def: unit.def,
+          spd: unit.spd,
+          cr: unit.critical_rate,
+          cd: unit.critical_damage,
+          acc: unit.accuracy,
+          res: unit.resist,
+          runes: unit.runes ?? [],
+        };
+      }) ?? [];
+
+    setAvailableMonsters(monsters);
+
+    setImportStatus({
+      fileName: "Cache",
+      monsters: data.unit_list?.length ?? 0,
+      runes: data.runes?.length ?? 0,
+      artifacts: data.artifact_list?.length ?? 0,
+    });
+  }, [swarfarmMonsters]);
+
   const store = useOptimizerStore();
 
   const [importStatus, setImportStatus] = useState<{
@@ -56,6 +118,7 @@ export default function TeamOptimizerPage() {
     try {
       const content = await file.text();
       const data = JSON.parse(content);
+      localStorage.setItem("swexData", JSON.stringify(data));
 
       store.setSwexData(data);
 

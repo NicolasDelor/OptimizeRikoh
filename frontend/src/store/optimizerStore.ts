@@ -3,6 +3,7 @@ import type { Monster } from "../../types/Monster";
 import type { MonsterConfig } from "../../types/MonsterConfig";
 import { runeSetNames, mainStatNames } from "../data/runeData";
 import type { OptimizationResult } from "../types/OptimizationResult";
+import { getActiveSets } from "../services/statCalculator";
 
 export function useOptimizerStore() {
   const [monsters, setMonsters] = useState<Monster[]>([]);
@@ -75,7 +76,7 @@ export function useOptimizerStore() {
     console.log("ADD MONSTER", swexMonster.name, swexMonster.unitId);
 
     const id = Date.now();
-
+    console.log("MONSTER ID", swexMonster.name, id);
     const monster: Monster = {
       id,
 
@@ -103,13 +104,7 @@ export function useOptimizerStore() {
       res: swexMonster.res,
     };
 
-    const activeSets = Array.from(
-      new Set(
-        (swexMonster.runes ?? [])
-          .map((r: any) => runeSetNames[r.set_id])
-          .filter(Boolean)
-      )
-    );
+    const activeSets = getActiveSets(swexMonster.runes ?? []);
 
     const slot2Rune = swexMonster.runes?.find((r: any) => r.slot_no === 2);
     const slot4Rune = swexMonster.runes?.find((r: any) => r.slot_no === 4);
@@ -147,6 +142,8 @@ export function useOptimizerStore() {
       speedOrder: 1,
 
       focus: ["spd"],
+
+      searchDepth: 10,
     };
 
     setMonsters((prev) => {

@@ -43,4 +43,6 @@ export interface MonsterConfig {
 
   ehpMin?: number;
   efficiencyMin?: number;
+
+  searchDepth?: number;
 }
