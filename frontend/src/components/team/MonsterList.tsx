@@ -19,7 +19,7 @@ export default function MonsterList({
         <div
           key={monster.id}
           className={`monster-item ${
-            selectedMonsterId === amonster.id ? "selected" : ""
+            selectedMonsterId === monster.id ? "selected" : ""
           }`}
           onClick={() => onSelect(monster.id)}
         >

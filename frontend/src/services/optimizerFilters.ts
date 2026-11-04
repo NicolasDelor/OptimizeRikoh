@@ -1,69 +1,73 @@
+import type { RuneSetName } from "../data/runeData";
 import type { MonsterConfig } from "../types/MonsterConfig";
-import { mainStatNames } from "../data/runeData";
+import type { PreparedRune } from "../types/Rune";
+import type { BuildCalculation } from "./statCalculator";
+import { getPossibleActiveSetCombinations } from "./statCalculator";
 
-export function passesSlotFilters(runes: any[], config: MonsterConfig) {
-  const slot2Rune = runes.find((r) => r.slot_no === 2);
-
-  const slot4Rune = runes.find((r) => r.slot_no === 4);
-
-  const slot6Rune = runes.find((r) => r.slot_no === 6);
-
-  const slot2Main = mainStatNames[slot2Rune?.pri_eff?.[0]] ?? "";
-
-  const slot4Main = mainStatNames[slot4Rune?.pri_eff?.[0]] ?? "";
-
-  const slot6Main = mainStatNames[slot6Rune?.pri_eff?.[0]] ?? "";
-
-  if (
-    config.slot2MainStats.length > 0 &&
-    !config.slot2MainStats.includes(slot2Main)
-  ) {
-    return false;
-  }
-
-  if (
-    config.slot4MainStats.length > 0 &&
-    !config.slot4MainStats.includes(slot4Main)
-  ) {
-    return false;
-  }
-
-  if (
-    config.slot6MainStats.length > 0 &&
-    !config.slot6MainStats.includes(slot6Main)
-  ) {
-    return false;
-  }
-
-  return true;
+function respectsMinimum(value: number, minimum: number | undefined): boolean {
+  return minimum === undefined || value >= minimum;
 }
 
-export function passesSetFilters(activeSets: string[], config: MonsterConfig) {
-  const requiredSets = [
+function respectsMaximum(value: number, maximum: number | undefined): boolean {
+  return maximum === undefined || value <= maximum;
+}
+
+export function passesStatFilters(
+  calculation: BuildCalculation,
+  config: MonsterConfig
+): boolean {
+  const { stats, ehp } = calculation;
+  const constraints = config.stats;
+
+  return (
+    respectsMinimum(stats.hp, constraints.hpMin) &&
+    respectsMaximum(stats.hp, constraints.hpMax) &&
+    respectsMinimum(stats.atk, constraints.atkMin) &&
+    respectsMaximum(stats.atk, constraints.atkMax) &&
+    respectsMinimum(stats.def, constraints.defMin) &&
+    respectsMaximum(stats.def, constraints.defMax) &&
+    respectsMinimum(stats.spd, constraints.spdMin) &&
+    respectsMaximum(stats.spd, constraints.spdMax) &&
+    respectsMinimum(stats.cr, constraints.crMin) &&
+    respectsMaximum(stats.cr, constraints.crMax) &&
+    respectsMinimum(stats.cd, constraints.cdMin) &&
+    respectsMaximum(stats.cd, constraints.cdMax) &&
+    respectsMinimum(stats.acc, constraints.accMin) &&
+    respectsMaximum(stats.acc, constraints.accMax) &&
+    respectsMinimum(stats.res, constraints.resMin) &&
+    respectsMaximum(stats.res, constraints.resMax) &&
+    respectsMinimum(ehp, constraints.ehpMin) &&
+    respectsMaximum(ehp, constraints.ehpMax)
+  );
+}
+
+function countSets(sets: readonly string[]): Record<string, number> {
+  const counts: Record<string, number> = {};
+
+  for (const set of sets) {
+    counts[set] = (counts[set] ?? 0) + 1;
+  }
+
+  return counts;
+}
+
+export function getRequiredSets(config: MonsterConfig): string[] {
+  return [
     ...(config.requiredSet1 ?? []),
     ...(config.requiredSet2 ?? []),
     ...(config.requiredSet3 ?? []),
   ].filter(Boolean);
+}
 
-  const requiredCounts: Record<string, number> = {};
-  const activeCounts: Record<string, number> = {};
+export function passesResolvedSetFilters(
+  activeSets: readonly RuneSetName[],
+  config: MonsterConfig
+): boolean {
+  const requiredCounts = countSets(getRequiredSets(config));
+  const activeCounts = countSets(activeSets);
 
-  requiredSets.forEach((set) => {
-    requiredCounts[set] = (requiredCounts[set] ?? 0) + 1;
-  });
-
-  activeSets.forEach((set) => {
-    activeCounts[set] = (activeCounts[set] ?? 0) + 1;
-  });
-
-  for (const [set, requiredCount] of Object.entries(requiredCounts)) {
-    if ((activeCounts[set] ?? 0) < requiredCount) {
-      return false;
-    }
-  }
-
-  for (const forbiddenSet of config.forbiddenSets) {
-    if (forbiddenSet && activeSets.includes(forbiddenSet)) {
+  for (const [setName, requiredCount] of Object.entries(requiredCounts)) {
+    if ((activeCounts[setName] ?? 0) < requiredCount) {
       return false;
     }
   }
@@ -71,52 +75,63 @@ export function passesSetFilters(activeSets: string[], config: MonsterConfig) {
   return true;
 }
 
-export function passesStatFilters(
-  stats: Record<string, number>,
+function containsForbiddenRune(
+  runes: readonly PreparedRune[],
   config: MonsterConfig
-) {
-  const hp = Math.round(stats.hp);
-  const atk = Math.round(stats.atk);
-  const def = Math.round(stats.def);
-  const spd = Math.round(stats.spd);
-  const cr = Math.round(stats.cr);
-  const cd = Math.round(stats.cd);
-  const acc = Math.round(stats.acc);
-  const res = Math.round(stats.res);
+): boolean {
+  const forbiddenSets = new Set(config.forbiddenSets ?? []);
 
-  if (config.stats.hpMin !== undefined && hp < config.stats.hpMin) return false;
-  if (config.stats.hpMax !== undefined && hp > config.stats.hpMax) return false;
+  return runes.some((rune) => forbiddenSets.has(rune.setName));
+}
 
-  if (config.stats.atkMin !== undefined && atk < config.stats.atkMin)
-    return false;
-  if (config.stats.atkMax !== undefined && atk > config.stats.atkMax)
-    return false;
+export function findValidActiveSets(
+  runes: PreparedRune[],
+  config: MonsterConfig
+): RuneSetName[] | null {
+  if (containsForbiddenRune(runes, config)) {
+    return null;
+  }
 
-  if (config.stats.defMin !== undefined && def < config.stats.defMin)
-    return false;
-  if (config.stats.defMax !== undefined && def > config.stats.defMax)
-    return false;
+  const possibleActiveSetCombinations = getPossibleActiveSetCombinations(runes);
 
-  if (config.stats.spdMin !== undefined && spd < config.stats.spdMin)
-    return false;
-  if (config.stats.spdMax !== undefined && spd > config.stats.spdMax)
-    return false;
+  for (const activeSets of possibleActiveSetCombinations) {
+    if (passesResolvedSetFilters(activeSets, config)) {
+      return activeSets;
+    }
+  }
 
-  if (config.stats.crMin !== undefined && cr < config.stats.crMin) return false;
-  if (config.stats.crMax !== undefined && cr > config.stats.crMax) return false;
+  return null;
+}
 
-  if (config.stats.cdMin !== undefined && cd < config.stats.cdMin) return false;
-  if (config.stats.cdMax !== undefined && cd > config.stats.cdMax) return false;
+export function passesSetFilters(
+  activeSets: readonly RuneSetName[],
+  config: MonsterConfig
+): boolean {
+  return passesResolvedSetFilters(activeSets, config);
+}
 
-  if (config.stats.accMin !== undefined && acc < config.stats.accMin)
-    return false;
-  if (config.stats.accMax !== undefined && acc > config.stats.accMax)
-    return false;
+function passesMainStatFilter(
+  rune: PreparedRune | undefined,
+  acceptedMainStats: readonly string[] | undefined
+): boolean {
+  if (!acceptedMainStats || acceptedMainStats.length === 0) {
+    return true;
+  }
 
-  if (config.stats.resMin !== undefined && res < config.stats.resMin)
-    return false;
-  if (config.stats.resMax !== undefined && res > config.stats.resMax)
-    return false;
+  return Boolean(rune && acceptedMainStats.includes(rune.mainStatName));
+}
 
-  return true;
+export function passesSlotFilters(
+  runes: PreparedRune[],
+  config: MonsterConfig
+): boolean {
+  const slot2Rune = runes.find((rune) => rune.slot === 2);
+  const slot4Rune = runes.find((rune) => rune.slot === 4);
+  const slot6Rune = runes.find((rune) => rune.slot === 6);
+
+  return (
+    passesMainStatFilter(slot2Rune, config.slot2MainStats) &&
+    passesMainStatFilter(slot4Rune, config.slot4MainStats) &&
+    passesMainStatFilter(slot6Rune, config.slot6MainStats)
+  );
 }

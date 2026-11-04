@@ -1,78 +1,138 @@
+import { useEffect, useMemo, useState } from "react";
 import type { OptimizationResult } from "../../types/OptimizationResult";
-import { useState } from "react";
+import type { VisibleResultColumns } from "./ResultsPanel";
+import RuneVisual from "./RuneVisual";
 
 interface Props {
   results: OptimizationResult[];
+  visibleColumns: VisibleResultColumns;
+}
 
-  visibleColumns: {
-    runes: boolean;
-    sets: boolean;
-    hp: boolean;
-    atk: boolean;
-    def: boolean;
-    spd: boolean;
-    cr: boolean;
-    cd: boolean;
-    acc: boolean;
-    res: boolean;
-    ehp: boolean;
-    efficiency: boolean;
-    slots: boolean;
-    damage: boolean;
-  };
+type SortableColumn =
+  | "hp"
+  | "atk"
+  | "def"
+  | "spd"
+  | "cr"
+  | "cd"
+  | "acc"
+  | "res"
+  | "ehp"
+  | "efficiency"
+  | "damage"
+  | "score";
+
+type SortDirection = "asc" | "desc";
+
+const PAGE_SIZE = 25;
+
+function formatDecimal(value: number): string {
+  if (!Number.isFinite(value)) {
+    return "0";
+  }
+
+  return Math.ceil(value).toLocaleString("fr-FR");
+}
+
+function compareNumbers(
+  firstValue: number,
+  secondValue: number,
+  direction: SortDirection
+): number {
+  return direction === "asc"
+    ? firstValue - secondValue
+    : secondValue - firstValue;
 }
 
 export default function MonsterResultsTable({
   results,
   visibleColumns,
 }: Props) {
-  console.log("TABLE RENDER", results.length);
-
-  const [sortColumn, setSortColumn] = useState<keyof OptimizationResult>("spd");
-
-  const [sortDirection, setSortDirection] = useState<"asc" | "desc">("desc");
-
-  const PAGE_SIZE = 10;
-
+  const [sortColumn, setSortColumn] = useState<SortableColumn>("spd");
+  const [sortDirection, setSortDirection] = useState<SortDirection>("desc");
   const [currentPage, setCurrentPage] = useState(1);
 
-  function handleSort(column: keyof OptimizationResult) {
-    setCurrentPage(1);
-    if (sortColumn === column) {
-      setSortDirection(sortDirection === "asc" ? "desc" : "asc");
-    } else {
-      setSortColumn(column);
-      setSortDirection("desc");
-    }
-  }
+  const sortedResults = useMemo(() => {
+    return [...results].sort((firstResult, secondResult) => {
+      const comparison = compareNumbers(
+        firstResult[sortColumn],
+        secondResult[sortColumn],
+        sortDirection
+      );
 
-  function getSortIcon(column: keyof OptimizationResult) {
+      if (comparison !== 0) {
+        return comparison;
+      }
+
+      for (let index = 0; index < 6; index++) {
+        const firstRuneId = firstResult.runeIds[index] ?? 0;
+        const secondRuneId = secondResult.runeIds[index] ?? 0;
+
+        if (firstRuneId !== secondRuneId) {
+          return firstRuneId - secondRuneId;
+        }
+      }
+
+      return 0;
+    });
+  }, [results, sortColumn, sortDirection]);
+
+  const totalPages = Math.max(1, Math.ceil(sortedResults.length / PAGE_SIZE));
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [results]);
+
+  useEffect(() => {
+    if (currentPage > totalPages) {
+      setCurrentPage(totalPages);
+    }
+  }, [currentPage, totalPages]);
+
+  const pagedResults = useMemo(() => {
+    const startIndex = (currentPage - 1) * PAGE_SIZE;
+
+    return sortedResults.slice(startIndex, startIndex + PAGE_SIZE);
+  }, [sortedResults, currentPage]);
+
+  const handleSort = (column: SortableColumn): void => {
+    setCurrentPage(1);
+
+    if (sortColumn === column) {
+      setSortDirection((previousDirection) =>
+        previousDirection === "asc" ? "desc" : "asc"
+      );
+      return;
+    }
+
+    setSortColumn(column);
+    setSortDirection("desc");
+  };
+
+  const getSortIcon = (column: SortableColumn): string => {
     if (sortColumn !== column) {
       return "";
     }
 
     return sortDirection === "asc" ? " ▲" : " ▼";
-  }
+  };
 
-  const sortedResults = [...results].sort((a, b) => {
-    const aValue = a[sortColumn];
-    const bValue = b[sortColumn];
-
-    if (typeof aValue === "number" && typeof bValue === "number") {
-      return sortDirection === "asc" ? aValue - bValue : bValue - aValue;
-    }
-
-    return sortDirection === "asc"
-      ? String(aValue).localeCompare(String(bValue))
-      : String(bValue).localeCompare(String(aValue));
-  });
-
-  const totalPages = Math.ceil(sortedResults.length / PAGE_SIZE);
-
-  const pagedResults = sortedResults.slice(
-    (currentPage - 1) * PAGE_SIZE,
-    currentPage * PAGE_SIZE
+  const renderSortableHeader = (column: SortableColumn, label: string) => (
+    <th>
+      <button
+        type="button"
+        className="results-sort-button"
+        onClick={() => handleSort(column)}
+      >
+        {label}
+        {getSortIcon(column)}
+      </button>
+    </th>
   );
+
+  if (results.length === 0) {
+    return <div className="results-empty">Aucun build valide trouvé.</div>;
+  }
 
   return (
     <div className="results-table-container">
@@ -80,105 +140,91 @@ export default function MonsterResultsTable({
         <thead>
           <tr>
             <th>#</th>
+
             {visibleColumns.runes && <th>RUNES</th>}
-
             {visibleColumns.sets && <th>SETS</th>}
-
-            {visibleColumns.hp && (
-              <th onClick={() => handleSort("hp")}>HP{getSortIcon("hp")}</th>
-            )}
-
-            {visibleColumns.atk && (
-              <th onClick={() => handleSort("atk")}>ATK{getSortIcon("atk")}</th>
-            )}
-
-            {visibleColumns.def && (
-              <th onClick={() => handleSort("def")}>DEF{getSortIcon("def")}</th>
-            )}
-
-            {visibleColumns.spd && (
-              <th onClick={() => handleSort("spd")}>SPD{getSortIcon("spd")}</th>
-            )}
-
-            {visibleColumns.cr && (
-              <th onClick={() => handleSort("cr")}>CR{getSortIcon("cr")}</th>
-            )}
-
-            {visibleColumns.cd && (
-              <th onClick={() => handleSort("cd")}>CD{getSortIcon("cd")}</th>
-            )}
-
-            {visibleColumns.res && (
-              <th onClick={() => handleSort("res")}>RES{getSortIcon("res")}</th>
-            )}
-
-            {visibleColumns.acc && (
-              <th onClick={() => handleSort("acc")}>ACC{getSortIcon("acc")}</th>
-            )}
-
-            {visibleColumns.ehp && (
-              <th onClick={() => handleSort("ehp")}>EHP{getSortIcon("ehp")}</th>
-            )}
-
-            {visibleColumns.damage && (
-              <th onClick={() => handleSort("score")}>
-                DMG{getSortIcon("score" as keyof OptimizationResult)}
-              </th>
-            )}
-
-            {visibleColumns.damage && <td>{Math.round(result.score)}</td>}
-
+            {visibleColumns.hp && renderSortableHeader("hp", "HP")}
+            {visibleColumns.atk && renderSortableHeader("atk", "ATK")}
+            {visibleColumns.def && renderSortableHeader("def", "DEF")}
+            {visibleColumns.spd && renderSortableHeader("spd", "SPD")}
+            {visibleColumns.cr && renderSortableHeader("cr", "CR")}
+            {visibleColumns.cd && renderSortableHeader("cd", "DCC")}
+            {visibleColumns.acc && renderSortableHeader("acc", "ACC")}
+            {visibleColumns.res && renderSortableHeader("res", "RES")}
+            {visibleColumns.ehp && renderSortableHeader("ehp", "EHP")}
+            {visibleColumns.efficiency &&
+              renderSortableHeader("efficiency", "EFF")}
+            {visibleColumns.damage && renderSortableHeader("damage", "DMG")}
             {visibleColumns.slots && <th>2/4/6</th>}
           </tr>
         </thead>
 
         <tbody>
-          {pagedResults.map((result, index) => (
-            <tr key={index}>
-              <td>{(currentPage - 1) * PAGE_SIZE + index + 1}</td>
+          {pagedResults.map((result, index) => {
+            const absoluteIndex = (currentPage - 1) * PAGE_SIZE + index + 1;
 
-              {visibleColumns.runes && <td>{result.runeIds.join(",")}</td>}
+            return (
+              <tr key={`${result.monsterId}-${result.runeIds.join("-")}`}>
+                <td>{absoluteIndex}</td>
 
-              {visibleColumns.sets && <td>{result.sets.join(", ")}</td>}
+                {visibleColumns.runes && (
+                  <td>
+                    <div className="result-runes">
+                      {result.runes.map((rune) => (
+                        <RuneVisual key={rune.id} rune={rune} />
+                      ))}
+                    </div>
+                  </td>
+                )}
 
-              {visibleColumns.hp && <td>{Math.round(result.hp)}</td>}
+                {visibleColumns.sets && <td>{result.sets.join(", ")}</td>}
 
-              {visibleColumns.atk && <td>{Math.round(result.atk)}</td>}
+                {visibleColumns.hp && <td>{formatDecimal(result.hp)}</td>}
 
-              {visibleColumns.def && <td>{Math.round(result.def)}</td>}
+                {visibleColumns.atk && <td>{formatDecimal(result.atk)}</td>}
 
-              {visibleColumns.spd && (
-                <td className="spd-cell">{Math.round(result.spd)}</td>
-              )}
+                {visibleColumns.def && <td>{formatDecimal(result.def)}</td>}
 
-              {visibleColumns.cr && <td>{Math.round(result.cr)}</td>}
+                {visibleColumns.spd && (
+                  <td className="spd-cell">{formatDecimal(result.spd)}</td>
+                )}
 
-              {visibleColumns.cd && <td>{Math.round(result.cd)}</td>}
+                {visibleColumns.cr && <td>{formatDecimal(result.cr)}</td>}
 
-              {visibleColumns.res && <td>{Math.round(result.res)}</td>}
+                {visibleColumns.cd && <td>{formatDecimal(result.cd)}</td>}
 
-              {visibleColumns.acc && <td>{Math.round(result.acc)}</td>}
+                {visibleColumns.acc && <td>{formatDecimal(result.acc)}</td>}
 
-              {visibleColumns.ehp && <td>{Math.round(result.ehp)}</td>}
+                {visibleColumns.res && <td>{formatDecimal(result.res)}</td>}
 
-              {visibleColumns.efficiency && (
-                <td>{Math.round(result.efficiency)}</td>
-              )}
+                {visibleColumns.ehp && <td>{formatDecimal(result.ehp)}</td>}
 
-              {visibleColumns.slots && (
-                <td>
-                  {result.slot2}, {result.slot4}, {result.slot6}
-                </td>
-              )}
-            </tr>
-          ))}
+                {visibleColumns.efficiency && (
+                  <td>{formatDecimal(result.efficiency)}</td>
+                )}
+
+                {visibleColumns.damage && (
+                  <td>{formatDecimal(result.damage)}</td>
+                )}
+
+                {visibleColumns.slots && (
+                  <td>
+                    {result.slot2}, {result.slot4}, {result.slot6}
+                  </td>
+                )}
+              </tr>
+            );
+          })}
         </tbody>
       </table>
 
       <div className="pagination">
         <button
-          disabled={currentPage === 1}
-          onClick={() => setCurrentPage((p) => p - 1)}
+          type="button"
+          disabled={currentPage <= 1}
+          onClick={() =>
+            setCurrentPage((previousPage) => Math.max(1, previousPage - 1))
+          }
         >
           ◀
         </button>
@@ -188,8 +234,13 @@ export default function MonsterResultsTable({
         </span>
 
         <button
-          disabled={currentPage === totalPages}
-          onClick={() => setCurrentPage((p) => p + 1)}
+          type="button"
+          disabled={currentPage >= totalPages}
+          onClick={() =>
+            setCurrentPage((previousPage) =>
+              Math.min(totalPages, previousPage + 1)
+            )
+          }
         >
           ▶
         </button>

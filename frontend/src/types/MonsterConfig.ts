@@ -1,7 +1,17 @@
-export interface MonsterConfig {
-  monsterId: number;
+export type OptimizableStat =
+    | "hp"
+    | "atk"
+    | "def"
+    | "spd"
+    | "cr"
+    | "cd"
+    | "acc"
+    | "res"
+    | "ehp"
+    | "efficiency"
+    | "damage";
 
-  stats: {
+export interface StatConstraints {
     hpMin?: number;
     hpMax?: number;
 
@@ -25,24 +35,33 @@ export interface MonsterConfig {
 
     resMin?: number;
     resMax?: number;
-  };
 
-  requiredSet1: string[];
-  requiredSet2: string[];
-  requiredSet3: string[];
+    ehpMin?: number;
+    ehpMax?: number;
 
-  forbiddenSets: string[];
+    efficiencyMin?: number;
+    efficiencyMax?: number;
+}
 
-  slot2MainStats: string[];
-  slot4MainStats: string[];
-  slot6MainStats: string[];
+export interface MonsterConfig {
+    monsterId: number;
 
-  speedOrder?: number;
+    stats: StatConstraints;
 
-  focus?: string[];
+    requiredSet1: string[];
+    requiredSet2: string[];
+    requiredSet3: string[];
 
-  ehpMin?: number;
-  efficiencyMin?: number;
+    forbiddenSets: string[];
 
-  searchDepth?: number;
+    slot2MainStats: string[];
+    slot4MainStats: string[];
+    slot6MainStats: string[];
+
+    focus: OptimizableStat[];
+
+    searchDepth: number;
+    resultLimit: number;
+    maxBranches: number;
+    maxDurationMs: number;
 }
