@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import type { Monster } from "../../types/Monster";
 import type { MonsterConfig, OptimizableStat } from "../../types/MonsterConfig";
 import {
@@ -6,10 +7,8 @@ import {
   getStatValue,
 } from "../../services/statCalculator";
 import { getRunesForMode } from "../../services/runeModeService";
-import { runeSetIcons } from "../../data/runeSetIcons";
 import {
   runeSetDefinitions,
-  runeSetIds,
   type MainStatName,
   type RuneSetName,
 } from "../../data/runeData";
@@ -28,15 +27,6 @@ interface SelectOption<T extends string = string> {
   value: T;
   label: string;
 }
-
-const QUICK_BUILDS: RuneSetName[][] = [
-  ["Swift", "Will"],
-  ["Violent", "Will"],
-  ["Violent", "Revenge"],
-  ["Violent", "Nemesis"],
-  ["Nemesis", "Nemesis", "Will"],
-  ["Rage", "Blade"],
-];
 
 const SLOT_2_MAIN_STATS: MainStatName[] = [
   "SPD",
@@ -85,37 +75,53 @@ const FOCUS_STATS: OptimizableStat[] = [
 ];
 
 const MAX_FOCUS = 5;
+const STAT_DISPLAY_EVENT = "optimizer-stat-display-change";
+let showGlobalStatTotals = false;
 
 function formatDecimal(value: number): string {
-  if (!Number.isFinite(value)) {
-    return "0";
-  }
-
-  return Math.ceil(value).toLocaleString("fr-FR");
+  return Number.isFinite(value)
+    ? Math.ceil(value).toLocaleString("fr-FR")
+    : "0";
 }
 
 const selectStyles: StylesConfig<SelectOption, true> = {
-  control: (base) => ({
+  control: (base, state) => ({
     ...base,
-    backgroundColor: "#081321",
-    border: "1px solid #20375f",
-    minHeight: "42px",
-    boxShadow: "none",
+    minHeight: "36px",
+    backgroundColor: "#081426",
+    border: `1px solid ${state.isFocused ? "#26c6f9" : "#2a4164"}`,
+    borderRadius: "7px",
+    boxShadow: state.isFocused ? "0 0 0 2px rgba(38, 198, 249, 0.12)" : "none",
     cursor: "pointer",
   }),
-  placeholder: (base) => ({ ...base, color: "#aaa" }),
-  input: (base) => ({ ...base, color: "#fff" }),
-  singleValue: (base) => ({ ...base, color: "#fff" }),
-  menuPortal: (base) => ({ ...base, zIndex: 99999 }),
+  valueContainer: (base) => ({
+    ...base,
+    padding: "2px 7px",
+  }),
+  placeholder: (base) => ({
+    ...base,
+    color: "#7789a5",
+    fontSize: "11px",
+  }),
+  input: (base) => ({
+    ...base,
+    color: "#fff",
+  }),
+  menuPortal: (base) => ({
+    ...base,
+    zIndex: 99999,
+  }),
   menu: (base) => ({
     ...base,
-    backgroundColor: "#081321",
-    border: "1px solid #20375f",
+    overflow: "hidden",
+    backgroundColor: "#0b172a",
+    border: "1px solid #2a4164",
+    borderRadius: "7px",
     zIndex: 99999,
   }),
   option: (base, state) => ({
     ...base,
-    backgroundColor: state.isFocused ? "#1a2d4d" : "#081321",
+    backgroundColor: state.isFocused ? "#17375c" : "#0b172a",
     color: "#fff",
     cursor: "pointer",
   }),
@@ -125,28 +131,31 @@ const selectStyles: StylesConfig<SelectOption, true> = {
   indicatorsContainer: () => ({ display: "none" }),
   multiValue: (base) => ({
     ...base,
-    backgroundColor: "#16345c",
-    border: "1px solid #2f6db8",
-    borderRadius: "4px",
+    backgroundColor: "#153860",
+    border: "1px solid #2e72b8",
+    borderRadius: "5px",
   }),
   multiValueLabel: (base) => ({
     ...base,
-    color: "#fff",
-    fontSize: "11px",
-    fontWeight: 600,
+    color: "#f5f9ff",
+    fontSize: "10px",
+    fontWeight: 800,
   }),
   multiValueRemove: (base) => ({
     ...base,
-    color: "#fff",
+    color: "#dce9f8",
     ":hover": {
-      backgroundColor: "#355b94",
+      backgroundColor: "#285a91",
       color: "#fff",
     },
   }),
 };
 
 function toOptions<T extends string>(values: readonly T[]): SelectOption<T>[] {
-  return values.map((value) => ({ value, label: value.toUpperCase() }));
+  return values.map((value) => ({
+    value,
+    label: value.toUpperCase(),
+  }));
 }
 
 function isRuneSetName(value: string): value is RuneSetName {
@@ -186,10 +195,7 @@ export default function TeamMonsterCard({
   }
 
   const runes = getRunesForMode(monster, importMode, importedData);
-
-  const runeSets: RuneSetName[] = runeSetDefinitions.map(
-    (definition) => definition.name
-  );
+  const runeSets = runeSetDefinitions.map((definition) => definition.name);
   const forbiddenSets = normalizeRuneSetNames(config.forbiddenSets);
   const requiredSet1 = normalizeRuneSetNames(config.requiredSet1);
   const requiredSet2 = normalizeRuneSetNames(config.requiredSet2);
@@ -198,11 +204,30 @@ export default function TeamMonsterCard({
   const slot4MainStats = normalizeMainStatNames(config.slot4MainStats);
   const slot6MainStats = normalizeMainStatNames(config.slot6MainStats);
   const focusList = config.focus ?? [];
+  const runeSetOptions = toOptions<RuneSetName>(runeSets);
+  const [showStatTotals, setShowStatTotals] = useState(showGlobalStatTotals);
 
-  const runeSetOptions: SelectOption<RuneSetName>[] =
-    toOptions<RuneSetName>(runeSets);
-  const forbiddenSetOptions: SelectOption<RuneSetName>[] =
-    toOptions<RuneSetName>(forbiddenSets);
+  useEffect(() => {
+    const handleStatDisplayChange = (event: Event): void => {
+      const customEvent = event as CustomEvent<boolean>;
+      setShowStatTotals(customEvent.detail);
+    };
+
+    window.addEventListener(STAT_DISPLAY_EVENT, handleStatDisplayChange);
+
+    return () => {
+      window.removeEventListener(STAT_DISPLAY_EVENT, handleStatDisplayChange);
+    };
+  }, []);
+
+  const toggleStatDisplay = (): void => {
+    showGlobalStatTotals = !showGlobalStatTotals;
+    window.dispatchEvent(
+      new CustomEvent<boolean>(STAT_DISPLAY_EVENT, {
+        detail: showGlobalStatTotals,
+      })
+    );
+  };
 
   const stats = [
     {
@@ -257,28 +282,12 @@ export default function TeamMonsterCard({
     },
   ] as const;
 
-  const applyQuickBuild = (sets: RuneSetName[]): void => {
-    onConfigChange?.({
-      requiredSet1: sets[0] ? [sets[0]] : [],
-      requiredSet2: sets[1] ? [sets[1]] : [],
-      requiredSet3: sets[2] ? [sets[2]] : [],
-    });
-  };
-
   const updateSetSelection = (
     key: "requiredSet1" | "requiredSet2" | "requiredSet3",
     selectedOptions: MultiValue<SelectOption<RuneSetName>>
   ): void => {
     onConfigChange?.({
       [key]: selectedOptions.map((option) => option.value),
-    });
-  };
-
-  const updateForbiddenSets = (
-    selectedOptions: MultiValue<SelectOption<RuneSetName>>
-  ): void => {
-    onConfigChange?.({
-      forbiddenSets: selectedOptions.map((option) => option.value),
     });
   };
 
@@ -292,18 +301,8 @@ export default function TeamMonsterCard({
   };
 
   return (
-    <div className="card">
-      <div className="monster-card-actions">
-        <button
-          className="monster-delete-button"
-          onClick={onDelete}
-          type="button"
-        >
-          ✕
-        </button>
-      </div>
-
-      <div className="monster-card-header">
+    <article className="optimizer-monster-card">
+      <header className="optimizer-monster-header">
         <div className="monster-image-placeholder">
           {monster.imageUrl && (
             <img
@@ -314,49 +313,30 @@ export default function TeamMonsterCard({
           )}
         </div>
 
-        <div>
-          <h3>{monster.name}</h3>
+        <h3 className="optimizer-monster-name">{monster.name}</h3>
 
-          <div className="quick-builds">
-            {QUICK_BUILDS.map((build) => (
-              <button
-                key={build.join("-")}
-                type="button"
-                className="quick-build-button"
-                onClick={() => applyQuickBuild(build)}
-              >
-                {build.map((setName, index) => {
-                  const setId = runeSetIds[setName];
-                  const icon = runeSetIcons[setId];
+        <button
+          className="monster-delete-button"
+          onClick={onDelete}
+          type="button"
+          aria-label={`Supprimer ${monster.name}`}
+        >
+          X
+        </button>
+      </header>
 
-                  return icon ? (
-                    <img
-                      key={`${setName}-${index}`}
-                      src={icon}
-                      alt={setName}
-                      className="quick-build-icon"
-                    />
-                  ) : (
-                    <span key={`${setName}-${index}`}>{setName}</span>
-                  );
-                })}
-              </button>
-            ))}
-          </div>
-        </div>
-      </div>
-
-      <div className="focus-row">
-        <span className="focus-label">Focus</span>
+      <section className="optimizer-section optimizer-section-focus">
+        <div className="optimizer-section-title">Focus</div>
 
         <Select<SelectOption<OptimizableStat>, true>
+          inputId={`focus-${monster.id}`}
           isMulti
           tabSelectsValue={false}
           closeMenuOnSelect={false}
           hideSelectedOptions
           menuPortalTarget={document.body}
           menuPosition="fixed"
-          placeholder="Focus..."
+          placeholder="Sélectionner les priorités..."
           options={toOptions(FOCUS_STATS)}
           value={toOptions(focusList)}
           isOptionDisabled={() => focusList.length >= MAX_FOCUS}
@@ -369,37 +349,21 @@ export default function TeamMonsterCard({
             selectStyles as StylesConfig<SelectOption<OptimizableStat>, true>
           }
         />
-      </div>
+      </section>
 
-      <div className="search-depth-row">
-        <span className="focus-label">Search Depth</span>
+      <section className="optimizer-section optimizer-section-sets">
+        <div className="optimizer-section-title">Sets requis</div>
 
-        <input
-          className="search-depth-input"
-          type="number"
-          min="1"
-          value={config.searchDepth}
-          onChange={(event) =>
-            onConfigChange?.({
-              searchDepth: Math.max(
-                1,
-                Math.floor(Number(event.target.value) || 1)
-              ),
-            })
-          }
-        />
-      </div>
-
-      <div className="monster-runes-configuration">
-        {(
-          [
-            ["requiredSet1", "Set 1", requiredSet1],
-            ["requiredSet2", "Set 2", requiredSet2],
-            ["requiredSet3", "Set 3", requiredSet3],
-          ] as const
-        ).map(([key, placeholder, values]) => (
-          <div className="slot-select-group" key={key}>
+        <div className="optimizer-three-columns">
+          {(
+            [
+              ["requiredSet1", "Set 1", requiredSet1],
+              ["requiredSet2", "Set 2", requiredSet2],
+              ["requiredSet3", "Set 3", requiredSet3],
+            ] as const
+          ).map(([key, placeholder, values]) => (
             <Select<SelectOption<RuneSetName>, true>
+              key={key}
               isMulti
               tabSelectsValue={false}
               closeMenuOnSelect={false}
@@ -416,12 +380,10 @@ export default function TeamMonsterCard({
                 selectStyles as StylesConfig<SelectOption<RuneSetName>, true>
               }
             />
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
 
-      <div className="excluded-sets-row">
-        <span className="focus-label">Sets exclus</span>
+        <div className="optimizer-subsection-label">Sets exclus</div>
 
         <Select<SelectOption<RuneSetName>, true>
           isMulti
@@ -437,98 +399,165 @@ export default function TeamMonsterCard({
               !requiredSet2.includes(option.value) &&
               !requiredSet3.includes(option.value)
           )}
-          value={forbiddenSetOptions}
-          onChange={updateForbiddenSets}
+          value={toOptions(forbiddenSets)}
+          onChange={(selectedOptions) =>
+            onConfigChange?.({
+              forbiddenSets: selectedOptions.map((option) => option.value),
+            })
+          }
           styles={selectStyles as StylesConfig<SelectOption<RuneSetName>, true>}
         />
-      </div>
+      </section>
 
-      <div className="monster-runes-configuration">
-        {(
-          [
-            ["slot2MainStats", "Slot 2...", SLOT_2_MAIN_STATS, slot2MainStats],
-            ["slot4MainStats", "Slot 4...", SLOT_4_MAIN_STATS, slot4MainStats],
-            ["slot6MainStats", "Slot 6...", SLOT_6_MAIN_STATS, slot6MainStats],
-          ] as const
-        ).map(([key, placeholder, options, values]) => (
-          <div className="slot-select-group" key={key}>
-            <Select<SelectOption<MainStatName>, true>
-              isMulti
-              tabSelectsValue={false}
-              closeMenuOnSelect={false}
-              hideSelectedOptions
-              placeholder={placeholder}
-              menuPortalTarget={document.body}
-              menuPosition="fixed"
-              options={toOptions<MainStatName>(options)}
-              value={toOptions<MainStatName>(values)}
-              onChange={(selectedOptions) =>
-                updateMainStatSelection(key, selectedOptions)
-              }
-              styles={
-                selectStyles as StylesConfig<SelectOption<MainStatName>, true>
-              }
-            />
-          </div>
-        ))}
-      </div>
+      <section className="optimizer-section optimizer-section-slots">
+        <div className="optimizer-section-title">Slots 2 / 4 / 6</div>
 
-      <div className="monster-stats">
-        <div className="stats-header">
-          <div>Stat</div>
-          <div>Base</div>
-          <div>Current</div>
-          <div>Min</div>
-          <div>Max</div>
-        </div>
+        <div className="optimizer-three-columns optimizer-slots-grid">
+          {(
+            [
+              ["slot2MainStats", "Slot 2", SLOT_2_MAIN_STATS, slot2MainStats],
+              ["slot4MainStats", "Slot 4", SLOT_4_MAIN_STATS, slot4MainStats],
+              ["slot6MainStats", "Slot 6", SLOT_6_MAIN_STATS, slot6MainStats],
+            ] as const
+          ).map(([key, placeholder, options, values], index) => (
+            <div className="optimizer-slot-control" key={key}>
+              <span className="optimizer-slot-number">{[2, 4, 6][index]}</span>
 
-        {stats.map((stat) => {
-          const minimumKey = `${stat.key}Min` as keyof MonsterConfig["stats"];
-          const maximumKey = `${stat.key}Max` as keyof MonsterConfig["stats"];
-
-          return (
-            <div key={stat.key} className="stat-row">
-              <div className="stat-label">{stat.label}</div>
-              <div className="stat-value">{formatDecimal(stat.base)}</div>
-              <div className="stat-value">+{formatDecimal(stat.current)}</div>
-
-              <input
-                className="stat-input"
-                type="number"
-                value={config.stats[minimumKey] ?? ""}
-                onChange={(event) =>
-                  onConfigChange?.({
-                    stats: {
-                      ...config.stats,
-                      [minimumKey]:
-                        event.target.value === ""
-                          ? undefined
-                          : Number(event.target.value),
-                    },
-                  })
+              <Select<SelectOption<MainStatName>, true>
+                isMulti
+                tabSelectsValue={false}
+                closeMenuOnSelect={false}
+                hideSelectedOptions
+                placeholder={placeholder}
+                menuPortalTarget={document.body}
+                menuPosition="fixed"
+                options={toOptions<MainStatName>(options)}
+                value={toOptions<MainStatName>(values)}
+                onChange={(selectedOptions) =>
+                  updateMainStatSelection(key, selectedOptions)
                 }
-              />
-
-              <input
-                className="stat-input"
-                type="number"
-                value={config.stats[maximumKey] ?? ""}
-                onChange={(event) =>
-                  onConfigChange?.({
-                    stats: {
-                      ...config.stats,
-                      [maximumKey]:
-                        event.target.value === ""
-                          ? undefined
-                          : Number(event.target.value),
-                    },
-                  })
+                styles={
+                  selectStyles as StylesConfig<SelectOption<MainStatName>, true>
                 }
               />
             </div>
-          );
-        })}
-      </div>
-    </div>
+          ))}
+        </div>
+      </section>
+
+      <section className="optimizer-section optimizer-section-stats">
+        <div className="optimizer-section-heading">
+          <div className="optimizer-section-title">Statistiques</div>
+          <span className="optimizer-section-hint">
+            Cliquer pour afficher {showStatTotals ? "le détail" : "le total"}
+          </span>
+        </div>
+
+        <div className="optimizer-stats-grid">
+          {stats.map((stat) => {
+            const minimumKey = `${stat.key}Min` as keyof MonsterConfig["stats"];
+            const maximumKey = `${stat.key}Max` as keyof MonsterConfig["stats"];
+
+            return (
+              <div
+                className={`optimizer-stat-card ${
+                  showStatTotals ? "is-total" : "is-detailed"
+                }`}
+                key={stat.key}
+                role="button"
+                tabIndex={0}
+                aria-label={`Basculer l'affichage de ${stat.label}`}
+                onClick={toggleStatDisplay}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter" || event.key === " ") {
+                    event.preventDefault();
+                    toggleStatDisplay();
+                  }
+                }}
+              >
+                <div className="optimizer-stat-summary">
+                  <div className="optimizer-stat-name">{stat.label}</div>
+
+                  <div className="optimizer-stat-current">
+                    {showStatTotals
+                      ? formatDecimal(stat.base + stat.current)
+                      : `${formatDecimal(stat.base)} + ${formatDecimal(stat.current)}`}
+                  </div>
+                </div>
+
+                <div
+                  className="optimizer-stat-inputs"
+                  onClick={(event) => event.stopPropagation()}
+                  onKeyDown={(event) => event.stopPropagation()}
+                >
+                  <input
+                    className="stat-input"
+                    type="number"
+                    placeholder="Min"
+                    aria-label={`${stat.label} minimum`}
+                    value={config.stats[minimumKey] ?? ""}
+                    onChange={(event) =>
+                      onConfigChange?.({
+                        stats: {
+                          ...config.stats,
+                          [minimumKey]:
+                            event.target.value === ""
+                              ? undefined
+                              : Number(event.target.value),
+                        },
+                      })
+                    }
+                  />
+
+                  <input
+                    className="stat-input"
+                    type="number"
+                    placeholder="Max"
+                    aria-label={`${stat.label} maximum`}
+                    value={config.stats[maximumKey] ?? ""}
+                    onChange={(event) =>
+                      onConfigChange?.({
+                        stats: {
+                          ...config.stats,
+                          [maximumKey]:
+                            event.target.value === ""
+                              ? undefined
+                              : Number(event.target.value),
+                        },
+                      })
+                    }
+                  />
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </section>
+
+      <section className="optimizer-section optimizer-section-advanced">
+        <div>
+          <div className="optimizer-advanced-title">Réglages avancés</div>
+          <div className="optimizer-advanced-description">
+            Profondeur maximale de recherche
+          </div>
+        </div>
+
+        <input
+          id={`depth-${monster.id}`}
+          className="optimizer-number-input"
+          type="number"
+          min="1"
+          value={config.searchDepth}
+          onChange={(event) =>
+            onConfigChange?.({
+              searchDepth: Math.max(
+                1,
+                Math.floor(Number(event.target.value) || 1)
+              ),
+            })
+          }
+        />
+      </section>
+    </article>
   );
 }

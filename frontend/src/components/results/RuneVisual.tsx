@@ -7,6 +7,7 @@ import {
 } from "react";
 import { createPortal } from "react-dom";
 import type { OptimizationResultRune } from "../../types/OptimizationResult";
+import { loadSwarfarmMonsters } from "../../services/swarfarmService";
 
 interface Props {
   rune: OptimizationResultRune;
@@ -20,6 +21,7 @@ interface RuneEffect {
 
 interface CachedRune {
   rune_id?: number;
+  occupied_id?: number;
   upgrade_curr?: number;
   class?: number;
   quality?: number;
@@ -31,6 +33,19 @@ interface CachedRune {
 interface TooltipPosition {
   left: number;
   top: number;
+}
+
+interface CachedUnit {
+  unit_id?: number;
+  unit_master_id?: number;
+}
+
+interface CachedData {
+  unit_list?: CachedUnit[];
+}
+
+interface SwarfarmMonsterData {
+  image_filename?: string;
 }
 
 const RUNE_SIZE = 32;
@@ -142,20 +157,6 @@ const starsStyle: CSSProperties = {
     "-1px -1px 0 #24051f, 1px -1px 0 #24051f, -1px 1px 0 #24051f, 1px 1px 0 #24051f",
 };
 
-const levelStyle: CSSProperties = {
-  position: "absolute",
-  zIndex: 3,
-  right: 1,
-  bottom: 1,
-  color: "#fff3b0",
-  fontSize: 8,
-  fontWeight: 900,
-  lineHeight: 1,
-  pointerEvents: "none",
-  textShadow:
-    "-1px -1px 0 #2a1200, 1px -1px 0 #2a1200, -1px 1px 0 #2a1200, 1px 1px 0 #2a1200",
-};
-
 const tooltipStyle: CSSProperties = {
   position: "fixed",
   zIndex: 100000,
@@ -243,6 +244,42 @@ function getCachedRune(runeId: number): CachedRune | null {
   }
 }
 
+async function resolveEquippedMonsterImage(
+  occupiedUnitId: number | undefined
+): Promise<string | null> {
+  if (!occupiedUnitId) {
+    return null;
+  }
+
+  try {
+    const rawValue = window.localStorage.getItem(CACHE_KEY);
+    if (!rawValue) {
+      return null;
+    }
+
+    const data = JSON.parse(rawValue) as CachedData;
+    const unit = data.unit_list?.find(
+      (candidate) => Number(candidate.unit_id) === occupiedUnitId
+    );
+
+    if (!unit?.unit_master_id) {
+      return null;
+    }
+
+    const monsters = (await loadSwarfarmMonsters()) as Record<
+      number,
+      SwarfarmMonsterData
+    >;
+    const reference = monsters[unit.unit_master_id];
+
+    return reference?.image_filename
+      ? `https://swarfarm.com/static/herders/images/monsters/${reference.image_filename}`
+      : null;
+  } catch {
+    return null;
+  }
+}
+
 function formatEffect(effect: RuneEffect): string {
   const statName = STAT_NAMES[effect.statId] ?? `Stat ${effect.statId}`;
   const total = effect.value + effect.grind;
@@ -271,6 +308,9 @@ export default function RuneVisual({ rune }: Props) {
     left: 0,
     top: 0,
   });
+  const [equippedMonsterImageUrl, setEquippedMonsterImageUrl] = useState<
+    string | null
+  >(null);
   const cachedRune = useMemo(() => getCachedRune(rune.id), [rune.id]);
   const setAssetName = getSetAssetName(rune.setName);
 
@@ -283,6 +323,20 @@ export default function RuneVisual({ rune }: Props) {
     : [];
   const quality =
     QUALITY_NAMES[Number(cachedRune?.quality ?? 0)] ?? "Légendaire";
+
+  useEffect(() => {
+    let active = true;
+
+    resolveEquippedMonsterImage(cachedRune?.occupied_id).then((imageUrl) => {
+      if (active) {
+        setEquippedMonsterImageUrl(imageUrl);
+      }
+    });
+
+    return () => {
+      active = false;
+    };
+  }, [cachedRune?.occupied_id]);
 
   useEffect(() => {
     if (!isVisible || !reference.current) {
@@ -344,6 +398,24 @@ export default function RuneVisual({ rune }: Props) {
               objectFit: "contain",
             }}
           />
+          {equippedMonsterImageUrl && (
+            <img
+              src={equippedMonsterImageUrl}
+              alt="Monstre équipé"
+              style={{
+                position: "absolute",
+                zIndex: 4,
+                left: 2,
+                bottom: 2,
+                width: 24,
+                height: 24,
+                border: "2px solid #d9a441",
+                borderRadius: 4,
+                objectFit: "cover",
+                background: "#15100a",
+              }}
+            />
+          )}
         </div>
 
         <div style={{ flex: 1, fontSize: 16, lineHeight: 1.5 }}>
@@ -450,11 +522,31 @@ export default function RuneVisual({ rune }: Props) {
           src={`https://cdn.swc.gg/tool-assets/runes-img/slot${rune.slot}.png`}
           alt={`Rune slot ${rune.slot}`}
         />
+        {equippedMonsterImageUrl && (
+          <img
+            src={equippedMonsterImageUrl}
+            alt=""
+            style={{
+              position: "absolute",
+              zIndex: 4,
+              left: 0,
+              bottom: 0,
+              width: 11,
+              minWidth: 11,
+              maxWidth: 11,
+              height: 11,
+              minHeight: 11,
+              maxHeight: 11,
+              border: "1px solid #d9a441",
+              borderRadius: 2,
+              objectFit: "cover",
+              background: "#15100a",
+              pointerEvents: "none",
+            }}
+          />
+        )}
         <span className="result-rune-stars" style={starsStyle}>
           {"★".repeat(rune.stars)}
-        </span>
-        <span className="result-rune-level" style={levelStyle}>
-          +{rune.level}
         </span>
       </span>
 
