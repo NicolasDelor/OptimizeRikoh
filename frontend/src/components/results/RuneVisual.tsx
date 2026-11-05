@@ -1,16 +1,18 @@
-import {
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-  type CSSProperties,
-} from "react";
+import { useEffect, useRef, useState, type CSSProperties } from "react";
 import { createPortal } from "react-dom";
-import type { OptimizationResultRune } from "../../types/OptimizationResult";
+import type { RuneOwnerState } from "../../services/equippedBuildStorage";
 import { loadSwarfarmMonsters } from "../../services/swarfarmService";
+import type { OptimizationResultRune } from "../../types/OptimizationResult";
 
 interface Props {
   rune: OptimizationResultRune;
+  owner?: RuneOwnerState | null;
+}
+
+export interface RuneDetailsCardProps {
+  rune: OptimizationResultRune;
+  owner?: RuneOwnerState | null;
+  className?: string;
 }
 
 interface RuneEffect {
@@ -22,17 +24,11 @@ interface RuneEffect {
 interface CachedRune {
   rune_id?: number;
   occupied_id?: number;
-  upgrade_curr?: number;
   class?: number;
   quality?: number;
   pri_eff?: unknown;
   prefix_eff?: unknown;
   sec_eff?: unknown;
-}
-
-interface TooltipPosition {
-  left: number;
-  top: number;
 }
 
 interface CachedUnit {
@@ -42,16 +38,34 @@ interface CachedUnit {
 
 interface CachedData {
   unit_list?: CachedUnit[];
+  [key: string]: unknown;
 }
 
 interface SwarfarmMonsterData {
   image_filename?: string;
 }
 
+interface TooltipPosition {
+  left: number;
+  top: number;
+}
+
+interface TooltipData {
+  cachedRune: CachedRune | null;
+  monsterImageUrl: string | null;
+  ownerSource: "json" | "site" | null;
+}
+
 const RUNE_SIZE = 32;
 const TOOLTIP_WIDTH = 330;
 const TOOLTIP_GAP = 10;
 const CACHE_KEY = "swexData";
+
+let parsedSwexCache: CachedData | null | undefined;
+let parsedSwexRawValue: string | null | undefined;
+let swarfarmPromise: Promise<Record<number, SwarfarmMonsterData>> | null = null;
+const runeCache = new Map<number, CachedRune | null>();
+const unitImageCache = new Map<number, Promise<string | null>>();
 
 const STAT_NAMES: Record<number, string> = {
   1: "HP",
@@ -103,73 +117,6 @@ const SET_BONUSES: Record<string, string> = {
   Will: "Immunité 1 tour",
 };
 
-const containerStyle: CSSProperties = {
-  position: "relative",
-  display: "inline-block",
-  flex: `0 0 ${RUNE_SIZE}px`,
-  width: RUNE_SIZE,
-  minWidth: RUNE_SIZE,
-  maxWidth: RUNE_SIZE,
-  height: RUNE_SIZE,
-  minHeight: RUNE_SIZE,
-  maxHeight: RUNE_SIZE,
-  overflow: "hidden",
-  background: "transparent",
-  verticalAlign: "middle",
-  cursor: "help",
-};
-
-const imageStyle: CSSProperties = {
-  position: "absolute",
-  inset: 0,
-  display: "block",
-  width: RUNE_SIZE,
-  minWidth: RUNE_SIZE,
-  maxWidth: RUNE_SIZE,
-  height: RUNE_SIZE,
-  minHeight: RUNE_SIZE,
-  maxHeight: RUNE_SIZE,
-  margin: 0,
-  padding: 0,
-  objectFit: "contain",
-  objectPosition: "center",
-  background: "transparent",
-  pointerEvents: "none",
-};
-
-const starsStyle: CSSProperties = {
-  position: "absolute",
-  zIndex: 3,
-  top: 1,
-  left: "50%",
-  width: 30,
-  overflow: "hidden",
-  transform: "translateX(-50%)",
-  color: "#ff55cf",
-  fontSize: 6,
-  fontWeight: 900,
-  lineHeight: 1,
-  letterSpacing: -1,
-  textAlign: "center",
-  whiteSpace: "nowrap",
-  pointerEvents: "none",
-  textShadow:
-    "-1px -1px 0 #24051f, 1px -1px 0 #24051f, -1px 1px 0 #24051f, 1px 1px 0 #24051f",
-};
-
-const tooltipStyle: CSSProperties = {
-  position: "fixed",
-  zIndex: 100000,
-  width: TOOLTIP_WIDTH,
-  padding: 14,
-  border: "1px solid #7b541d",
-  borderRadius: 10,
-  background: "linear-gradient(180deg, #2c1a0d 0%, #1b1009 100%)",
-  color: "#fff4d1",
-  boxShadow: "0 12px 32px rgba(0, 0, 0, 0.65)",
-  pointerEvents: "none",
-};
-
 function getSetAssetName(setName: string): string {
   return setName.toLowerCase().replace(/[^a-z0-9]/g, "");
 }
@@ -179,17 +126,13 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 }
 
 function readEffect(effect: unknown): RuneEffect | null {
-  if (!Array.isArray(effect) || effect.length < 2) {
-    return null;
-  }
+  if (!Array.isArray(effect) || effect.length < 2) return null;
 
   const statId = Number(effect[0]);
   const value = Number(effect[1] ?? 0);
   const grind = Number(effect[3] ?? 0);
 
-  if (!Number.isFinite(statId) || !Number.isFinite(value)) {
-    return null;
-  }
+  if (!Number.isFinite(statId) || !Number.isFinite(value)) return null;
 
   return {
     statId,
@@ -198,93 +141,116 @@ function readEffect(effect: unknown): RuneEffect | null {
   };
 }
 
+function getSwexCache(): CachedData | null {
+  const rawValue = window.localStorage.getItem(CACHE_KEY);
+
+  if (parsedSwexRawValue === rawValue && parsedSwexCache !== undefined) {
+    return parsedSwexCache;
+  }
+
+  parsedSwexRawValue = rawValue;
+  runeCache.clear();
+  unitImageCache.clear();
+
+  try {
+    parsedSwexCache = rawValue ? (JSON.parse(rawValue) as CachedData) : null;
+  } catch {
+    parsedSwexCache = null;
+  }
+
+  return parsedSwexCache;
+}
+
 function findRune(value: unknown, runeId: number): CachedRune | null {
   if (Array.isArray(value)) {
     for (const item of value) {
       const found = findRune(item, runeId);
-      if (found) {
-        return found;
-      }
+      if (found) return found;
     }
     return null;
   }
 
-  if (!isRecord(value)) {
-    return null;
-  }
-
-  if (Number(value.rune_id) === runeId) {
-    return value as CachedRune;
-  }
+  if (!isRecord(value)) return null;
+  if (Number(value.rune_id) === runeId) return value as CachedRune;
 
   for (const child of Object.values(value)) {
-    if (typeof child !== "object" || child === null) {
-      continue;
-    }
-
+    if (typeof child !== "object" || child === null) continue;
     const found = findRune(child, runeId);
-    if (found) {
-      return found;
-    }
+    if (found) return found;
   }
 
   return null;
 }
 
 function getCachedRune(runeId: number): CachedRune | null {
-  try {
-    const rawValue = window.localStorage.getItem(CACHE_KEY);
-    if (!rawValue) {
-      return null;
-    }
+  getSwexCache();
+  if (runeCache.has(runeId)) return runeCache.get(runeId) ?? null;
 
-    return findRune(JSON.parse(rawValue) as unknown, runeId);
-  } catch {
-    return null;
-  }
+  const cachedRune = findRune(parsedSwexCache, runeId);
+  runeCache.set(runeId, cachedRune);
+  return cachedRune;
 }
 
-async function resolveEquippedMonsterImage(
+function resolveImportedMonsterImage(
   occupiedUnitId: number | undefined
 ): Promise<string | null> {
-  if (!occupiedUnitId) {
-    return null;
-  }
+  if (!occupiedUnitId) return Promise.resolve(null);
 
-  try {
-    const rawValue = window.localStorage.getItem(CACHE_KEY);
-    if (!rawValue) {
-      return null;
-    }
+  const existing = unitImageCache.get(occupiedUnitId);
+  if (existing) return existing;
 
-    const data = JSON.parse(rawValue) as CachedData;
-    const unit = data.unit_list?.find(
+  const promise = (async (): Promise<string | null> => {
+    const data = getSwexCache();
+    const unit = data?.unit_list?.find(
       (candidate) => Number(candidate.unit_id) === occupiedUnitId
     );
 
-    if (!unit?.unit_master_id) {
-      return null;
-    }
+    if (!unit?.unit_master_id) return null;
 
-    const monsters = (await loadSwarfarmMonsters()) as Record<
-      number,
-      SwarfarmMonsterData
+    swarfarmPromise ??= loadSwarfarmMonsters() as Promise<
+      Record<number, SwarfarmMonsterData>
     >;
+    const monsters = await swarfarmPromise;
     const reference = monsters[unit.unit_master_id];
 
     return reference?.image_filename
       ? `https://swarfarm.com/static/herders/images/monsters/${reference.image_filename}`
       : null;
-  } catch {
-    return null;
+  })().catch(() => null);
+
+  unitImageCache.set(occupiedUnitId, promise);
+  return promise;
+}
+
+async function loadTooltipData(
+  runeId: number,
+  owner: RuneOwnerState | null | undefined
+): Promise<TooltipData> {
+  const cachedRune = getCachedRune(runeId);
+
+  if (owner?.active && owner.monsterImageUrl) {
+    return {
+      cachedRune,
+      monsterImageUrl: owner.monsterImageUrl,
+      ownerSource: "site",
+    };
   }
+
+  const importedMonsterImageUrl = await resolveImportedMonsterImage(
+    cachedRune?.occupied_id
+  );
+
+  return {
+    cachedRune,
+    monsterImageUrl: importedMonsterImageUrl,
+    ownerSource: importedMonsterImageUrl ? "json" : null,
+  };
 }
 
 function formatEffect(effect: RuneEffect): string {
   const statName = STAT_NAMES[effect.statId] ?? `Stat ${effect.statId}`;
   const total = effect.value + effect.grind;
   const suffix = PERCENT_STATS.has(effect.statId) ? "%" : "";
-
   return `${statName} +${total}${suffix}`;
 }
 
@@ -297,23 +263,37 @@ function getTooltipPosition(element: HTMLElement): TooltipPosition {
       ? preferredLeft
       : Math.max(8, fallbackLeft);
   const top = Math.max(8, Math.min(rect.top, window.innerHeight - 360));
-
   return { left, top };
 }
 
-export default function RuneVisual({ rune }: Props) {
-  const reference = useRef<HTMLSpanElement>(null);
-  const [isVisible, setIsVisible] = useState(false);
-  const [position, setPosition] = useState<TooltipPosition>({
-    left: 0,
-    top: 0,
-  });
-  const [equippedMonsterImageUrl, setEquippedMonsterImageUrl] = useState<
-    string | null
-  >(null);
-  const cachedRune = useMemo(() => getCachedRune(rune.id), [rune.id]);
-  const setAssetName = getSetAssetName(rune.setName);
+function getQualityName(cachedRune: CachedRune | null): string {
+  return QUALITY_NAMES[Number(cachedRune?.quality ?? 0)] ?? "Indisponible";
+}
 
+export function RuneDetailsCard({
+  rune,
+  owner,
+  className = "",
+}: RuneDetailsCardProps) {
+  const [data, setData] = useState<TooltipData | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    let active = true;
+    setIsLoading(true);
+
+    loadTooltipData(rune.id, owner).then((loadedData) => {
+      if (!active) return;
+      setData(loadedData);
+      setIsLoading(false);
+    });
+
+    return () => {
+      active = false;
+    };
+  }, [rune.id, owner]);
+
+  const cachedRune = data?.cachedRune ?? null;
   const mainStat = readEffect(cachedRune?.pri_eff);
   const innateStat = readEffect(cachedRune?.prefix_eff);
   const secondaryStats = Array.isArray(cachedRune?.sec_eff)
@@ -321,35 +301,128 @@ export default function RuneVisual({ rune }: Props) {
         .map(readEffect)
         .filter((effect): effect is RuneEffect => effect !== null)
     : [];
-  const quality =
-    QUALITY_NAMES[Number(cachedRune?.quality ?? 0)] ?? "Légendaire";
+  const quality = getQualityName(cachedRune);
+  const runeStars = Math.max(
+    0,
+    Math.min(6, Number(cachedRune?.class ?? rune.stars ?? 0))
+  );
+  const setAssetName = getSetAssetName(rune.setName);
+
+  return (
+    <article className={`rune-details-card ${className}`.trim()}>
+      {isLoading ? (
+        <div className="rune-details-loading">Chargement de la rune...</div>
+      ) : (
+        <>
+          <div className="rune-details-title">
+            +{rune.level} Rune {rune.setName} {quality} ({rune.slot})
+          </div>
+
+          <div className="rune-details-main">
+            <div className="rune-details-visual">
+              <img
+                src={`https://cdn.swc.gg/tool-assets/runes-img/slot${rune.slot}.png`}
+                alt=""
+                className="rune-details-slot"
+              />
+              <img
+                src={`https://cdn.swc.gg/tool-assets/sets-runes-colored/legend/${setAssetName}.png`}
+                alt=""
+                className="rune-details-set"
+              />
+              {data?.monsterImageUrl && (
+                <img
+                  src={data.monsterImageUrl}
+                  alt="Porteur de la rune"
+                  className={`rune-details-owner ${
+                    data.ownerSource === "site" ? "is-site" : "is-json"
+                  }`}
+                />
+              )}
+              <span className="rune-details-stars">
+                {"★".repeat(runeStars)}
+              </span>
+            </div>
+
+            <div className="rune-details-primary">
+              {mainStat && <div>{formatEffect(mainStat)}</div>}
+              {innateStat && innateStat.statId > 0 && innateStat.value > 0 && (
+                <div className="rune-details-innate">
+                  Innée : {formatEffect(innateStat)}
+                </div>
+              )}
+              <div className="rune-details-quality">{quality}</div>
+            </div>
+          </div>
+
+          <div className="rune-details-secondary">
+            {secondaryStats.length > 0 ? (
+              secondaryStats.map((effect, index) => (
+                <div key={`${effect.statId}-${index}`}>
+                  {formatEffect(effect)}
+                  {effect.grind > 0 && (
+                    <span className="rune-details-grind">{` (+${effect.grind})`}</span>
+                  )}
+                </div>
+              ))
+            ) : (
+              <div className="rune-details-empty">
+                Détail indisponible dans le cache local.
+              </div>
+            )}
+          </div>
+
+          <div className="rune-details-bonus">
+            Set : {SET_BONUSES[rune.setName] ?? rune.setName}
+          </div>
+        </>
+      )}
+    </article>
+  );
+}
+
+export default function RuneVisual({ rune, owner }: Props) {
+  const reference = useRef<HTMLSpanElement>(null);
+  const [isVisible, setIsVisible] = useState(false);
+  const [position, setPosition] = useState<TooltipPosition>({
+    left: 0,
+    top: 0,
+  });
+  const [ownerData, setOwnerData] = useState<TooltipData | null>(null);
+  const setAssetName = getSetAssetName(rune.setName);
 
   useEffect(() => {
     let active = true;
 
-    resolveEquippedMonsterImage(cachedRune?.occupied_id).then((imageUrl) => {
-      if (active) {
-        setEquippedMonsterImageUrl(imageUrl);
-      }
+    loadTooltipData(rune.id, owner).then((data) => {
+      if (active) setOwnerData(data);
     });
 
     return () => {
       active = false;
     };
-  }, [cachedRune?.occupied_id]);
+  }, [rune.id, owner]);
+
+  const cachedRune = getCachedRune(rune.id);
+  const runeStars = Math.max(
+    0,
+    Math.min(6, Number(cachedRune?.class ?? rune.stars ?? 0))
+  );
+
+  const openTooltip = (): void => {
+    if (reference.current) setPosition(getTooltipPosition(reference.current));
+    setIsVisible(true);
+  };
+
+  const closeTooltip = (): void => setIsVisible(false);
 
   useEffect(() => {
-    if (!isVisible || !reference.current) {
-      return;
-    }
+    if (!isVisible || !reference.current) return;
 
     const updatePosition = (): void => {
-      if (reference.current) {
-        setPosition(getTooltipPosition(reference.current));
-      }
+      if (reference.current) setPosition(getTooltipPosition(reference.current));
     };
 
-    updatePosition();
     window.addEventListener("scroll", updatePosition, true);
     window.addEventListener("resize", updatePosition);
 
@@ -359,198 +432,62 @@ export default function RuneVisual({ rune }: Props) {
     };
   }, [isVisible]);
 
-  const tooltip = (
-    <div
-      role="tooltip"
-      style={{
-        ...tooltipStyle,
-        left: position.left,
-        top: position.top,
-      }}
-    >
-      <div
-        style={{
-          marginBottom: 12,
-          color: "#e8a43e",
-          fontSize: 18,
-          fontWeight: 800,
-        }}
-      >
-        +{rune.level} Rune {rune.setName} {quality} ({rune.slot})
-      </div>
-
-      <div style={{ display: "flex", gap: 14 }}>
-        <div style={{ position: "relative", width: 76, height: 76 }}>
-          <img
-            src={`https://cdn.swc.gg/tool-assets/runes-img/slot${rune.slot}.png`}
-            alt=""
-            style={{ width: 76, height: 76, objectFit: "contain" }}
-          />
-          <img
-            src={`https://cdn.swc.gg/tool-assets/sets-runes-colored/legend/${setAssetName}.png`}
-            alt=""
-            style={{
-              position: "absolute",
-              width: 42,
-              height: 42,
-              left: 17,
-              top: 17,
-              objectFit: "contain",
-            }}
-          />
-          {equippedMonsterImageUrl && (
-            <img
-              src={equippedMonsterImageUrl}
-              alt="Monstre équipé"
-              style={{
-                position: "absolute",
-                zIndex: 4,
-                left: 2,
-                bottom: 2,
-                width: 24,
-                height: 24,
-                border: "2px solid #d9a441",
-                borderRadius: 4,
-                objectFit: "cover",
-                background: "#15100a",
-              }}
-            />
-          )}
-        </div>
-
-        <div style={{ flex: 1, fontSize: 16, lineHeight: 1.5 }}>
-          {mainStat && <div>{formatEffect(mainStat)}</div>}
-          {innateStat && innateStat.statId > 0 && innateStat.value > 0 && (
-            <div style={{ color: "#f5e4bb" }}>
-              Innée : {formatEffect(innateStat)}
-            </div>
-          )}
-          <div
-            style={{
-              display: "inline-block",
-              marginTop: 7,
-              padding: "3px 10px",
-              borderRadius: 6,
-              background: "#8c3717",
-              color: "#ffd58c",
-              fontSize: 13,
-              fontWeight: 700,
-            }}
-          >
-            {quality}
-          </div>
-        </div>
-      </div>
-
-      <div
-        style={{
-          marginTop: 12,
-          borderTop: "1px solid #5a381b",
-          paddingTop: 10,
-          fontSize: 15,
-          lineHeight: 1.55,
-        }}
-      >
-        {secondaryStats.length > 0 ? (
-          secondaryStats.map((effect, index) => (
-            <div key={`${effect.statId}-${index}`}>
-              {formatEffect(effect)}
-              {effect.grind > 0 && (
-                <span style={{ color: "#64d27a" }}>
-                  {` (+${effect.grind})`}
-                </span>
-              )}
-            </div>
-          ))
-        ) : (
-          <div style={{ color: "#b9a58d" }}>
-            Détail indisponible dans le cache local.
-          </div>
-        )}
-      </div>
-
-      <div
-        style={{
-          marginTop: 12,
-          borderTop: "1px solid #5a381b",
-          paddingTop: 10,
-          color: "#a7d63e",
-          fontSize: 15,
-          fontWeight: 700,
-        }}
-      >
-        Set : {SET_BONUSES[rune.setName] ?? rune.setName}
-      </div>
-    </div>
-  );
-
   return (
     <>
       <span
         ref={reference}
         className="result-rune"
-        style={containerStyle}
-        onMouseEnter={() => setIsVisible(true)}
-        onMouseLeave={() => setIsVisible(false)}
-        onFocus={() => setIsVisible(true)}
-        onBlur={() => setIsVisible(false)}
+        onMouseEnter={openTooltip}
+        onMouseLeave={closeTooltip}
+        onFocus={openTooltip}
+        onBlur={closeTooltip}
         tabIndex={0}
       >
         <img
-          className="result-rune-set"
-          style={{
-            ...imageStyle,
-            zIndex: 2,
-            inset: 6,
-            width: 20,
-            minWidth: 20,
-            maxWidth: 20,
-            height: 20,
-            minHeight: 20,
-            maxHeight: 20,
-          }}
-          width={20}
-          height={20}
-          src={`https://cdn.swc.gg/tool-assets/sets-runes-colored/legend/${setAssetName}.png`}
-          alt=""
-        />
-        <img
           className="result-rune-slot"
-          style={{ ...imageStyle, zIndex: 1 }}
           width={RUNE_SIZE}
           height={RUNE_SIZE}
           src={`https://cdn.swc.gg/tool-assets/runes-img/slot${rune.slot}.png`}
           alt={`Rune slot ${rune.slot}`}
         />
-        {equippedMonsterImageUrl && (
+        <img
+          className="result-rune-set"
+          src={`https://cdn.swc.gg/tool-assets/sets-runes-colored/legend/${setAssetName}.png`}
+          alt=""
+        />
+        {ownerData?.monsterImageUrl && (
           <img
-            src={equippedMonsterImageUrl}
+            className={`result-rune-owner ${
+              ownerData.ownerSource === "site" ? "is-site" : "is-json"
+            }`}
+            src={ownerData.monsterImageUrl}
             alt=""
-            style={{
-              position: "absolute",
-              zIndex: 4,
-              left: 0,
-              bottom: 0,
-              width: 11,
-              minWidth: 11,
-              maxWidth: 11,
-              height: 11,
-              minHeight: 11,
-              maxHeight: 11,
-              border: "1px solid #d9a441",
-              borderRadius: 2,
-              objectFit: "cover",
-              background: "#15100a",
-              pointerEvents: "none",
-            }}
+            title={
+              ownerData.ownerSource === "site"
+                ? "Équipée ou verrouillée depuis le site"
+                : "Équipement provenant du JSON SWEX"
+            }
           />
         )}
-        <span className="result-rune-stars" style={starsStyle}>
-          {"★".repeat(rune.stars)}
-        </span>
+        <span className="result-rune-stars">{"★".repeat(runeStars)}</span>
       </span>
 
-      {isVisible && createPortal(tooltip, document.body)}
+      {isVisible &&
+        createPortal(
+          <div
+            role="tooltip"
+            className="rune-tooltip"
+            style={
+              {
+                "--rune-tooltip-left": `${position.left}px`,
+                "--rune-tooltip-top": `${position.top}px`,
+              } as CSSProperties
+            }
+          >
+            <RuneDetailsCard rune={rune} owner={owner} />
+          </div>,
+          document.body
+        )}
     </>
   );
 }

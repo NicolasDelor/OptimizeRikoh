@@ -1,457 +1,551 @@
 :root {
   --opt-page: #08111f;
   --opt-card: #101a2d;
-  --opt-card-header: #121f36;
   --opt-panel: #14223b;
-  --opt-panel-soft: #172845;
   --opt-field: #081426;
   --opt-border: #263f65;
-  --opt-border-hover: #3a6699;
   --opt-azure: #25c9f5;
-  --opt-azure-soft: #8ebddd;
   --opt-text: #f4f8ff;
   --opt-muted: #8498b6;
-  --opt-danger: #f27f8c;
 }
 
-.result-runes {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 3px;
-  min-width: 212px;
+.result-runes { display:flex; align-items:center; justify-content:center; gap:3px; min-width:212px; }
+.result-rune { position:relative; display:inline-block; flex:0 0 32px; width:32px; min-width:32px; max-width:32px; height:32px; min-height:32px; max-height:32px; overflow:visible; background:transparent; vertical-align:middle; cursor:help; }
+.result-rune-slot { position:absolute; z-index:1; inset:0; display:block; width:32px; min-width:32px; max-width:32px; height:32px; min-height:32px; max-height:32px; margin:0; padding:0; object-fit:contain; object-position:center; background:transparent; pointer-events:none; }
+.result-rune-set { position:absolute; z-index:2; top:50%; left:50%; display:block; width:9px; min-width:9px; max-width:9px; height:9px; min-height:9px; max-height:9px; margin:0; padding:0; transform:translate(-50%,-50%); object-fit:contain; object-position:center; background:transparent; pointer-events:none; }
+.result-rune-stars { position:absolute; z-index:3; top:1px; left:50%; display:flex; justify-content:center; width:32px; overflow:visible; transform:translateX(-50%) scaleX(.82); transform-origin:center top; color:#ff55cf; font-size:6px; font-weight:900; line-height:1; letter-spacing:-1.4px; text-align:center; white-space:nowrap; pointer-events:none; text-shadow:-1px -1px 0 #24051f,1px -1px 0 #24051f,-1px 1px 0 #24051f,1px 1px 0 #24051f; }
+
+.rune-tooltip { position:fixed; z-index:100000; top:var(--rune-tooltip-top, 0px); left:var(--rune-tooltip-left, 0px); width:330px; padding:14px; border:1px solid #7b541d; border-radius:10px; background:linear-gradient(180deg,#2c1a0d 0%,#1b1009 100%); color:#fff4d1; box-shadow:0 12px 32px rgba(0,0,0,.65); pointer-events:none; }
+.rune-tooltip-loading { color:#d8bd8c; font-size:14px; }
+.rune-tooltip-title { margin-bottom:12px; color:#e8a43e; font-size:18px; font-weight:800; }
+.rune-tooltip-main { display:flex; gap:14px; }
+.rune-tooltip-visual { position:relative; width:76px; height:76px; }
+.rune-tooltip-slot { width:76px; height:76px; object-fit:contain; }
+.rune-tooltip-set { position:absolute; top:17px; left:17px; width:42px; height:42px; object-fit:contain; }
+.rune-tooltip-owner { position:absolute; z-index:4; left:2px; bottom:2px; width:24px; height:24px; border:2px solid #d9a441; border-radius:4px; object-fit:cover; background:#15100a; }
+.rune-tooltip-owner.is-previous { border-color:#718096; filter:grayscale(1); opacity:.72; }
+.rune-tooltip-primary { flex:1; font-size:16px; line-height:1.5; }
+.rune-tooltip-innate { color:#f5e4bb; }
+.rune-tooltip-quality { display:inline-block; margin-top:7px; padding:3px 10px; border-radius:6px; background:#8c3717; color:#ffd58c; font-size:13px; font-weight:700; }
+.rune-tooltip-secondary { margin-top:12px; padding-top:10px; border-top:1px solid #5a381b; font-size:15px; line-height:1.55; }
+.rune-tooltip-grind { color:#64d27a; }
+.rune-tooltip-empty { color:#b9a58d; }
+.rune-tooltip-bonus { margin-top:12px; padding-top:10px; border-top:1px solid #5a381b; color:#a7d63e; font-size:15px; font-weight:700; }
+
+.optimizer-monster-card { position:relative; display:flex; flex-direction:column; width:390px; max-width:100%; padding:12px; border:1px solid #243c60; border-radius:10px; background:#101b2e; box-shadow:0 10px 26px rgba(0,0,0,.22); }
+.optimizer-monster-header { display:grid; grid-template-columns:40px minmax(0,1fr) 28px; align-items:center; gap:10px; padding-bottom:12px; border-bottom:1px solid rgba(82,118,163,.22); }
+.optimizer-monster-header .monster-image-placeholder { width:40px; height:40px; overflow:hidden; border:1px solid #4a709e; border-radius:7px; background:#081426; }
+.optimizer-monster-header .monster-image { display:block; width:100%; height:100%; object-fit:cover; }
+.optimizer-monster-name { min-width:0; margin:0; overflow:hidden; color:#f4f8ff; font-size:16px; font-weight:800; text-overflow:ellipsis; white-space:nowrap; }
+.optimizer-monster-card .monster-delete-button { all:unset; display:grid; width:26px; height:26px; place-items:center; border-radius:6px; color:#8298b8; cursor:pointer; }
+.optimizer-monster-card .monster-delete-button:hover { background:rgba(242,127,140,.12); color:#f27f8c; }
+.optimizer-section { position:relative; padding:13px 0; border:0; border-bottom:1px solid rgba(82,118,163,.18); background:transparent; }
+.optimizer-section-title { display:flex; align-items:center; gap:8px; margin-bottom:8px; color:#73d7ff; font-size:10px; font-weight:900; letter-spacing:.09em; text-transform:uppercase; }
+.optimizer-section-title::after { content:""; flex:1; height:1px; background:linear-gradient(90deg,rgba(115,215,255,.35),transparent); }
+.optimizer-section-focus { padding-top:12px; }
+.optimizer-subsection-label { margin:10px 0 6px; color:#7f94b3; font-size:9px; font-weight:800; letter-spacing:.06em; text-transform:uppercase; }
+.optimizer-three-columns { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:6px; min-width:0; }
+.optimizer-three-columns > div,.optimizer-slot-control,.optimizer-slot-control > div { min-width:0; }
+.optimizer-slot-control { position:relative; }
+.optimizer-slot-number { position:absolute; z-index:4; top:9px; left:8px; display:grid; width:18px; height:18px; place-items:center; border-radius:4px; background:#1b3c69; color:#a9dfff; font-size:10px; font-weight:900; pointer-events:none; }
+.optimizer-slot-control .css-b62m3t-container > div:first-of-type { padding-left:22px; }
+.optimizer-section-heading { display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:9px; }
+.optimizer-section-heading .optimizer-section-title { flex:1; margin-bottom:0; }
+.optimizer-section-hint { color:#617b9d; font-size:8px; font-weight:700; white-space:nowrap; }
+.optimizer-stats-grid { display:grid; grid-template-columns:repeat(2,178px); justify-content:start; gap:7px; width:max-content; max-width:100%; }
+.optimizer-stat-card { display:grid; grid-template-columns:minmax(0,1fr); grid-template-areas:"summary" "inputs"; row-gap:6px; width:178px; min-width:0; padding:8px; overflow:hidden; border:1px solid #263f63; border-radius:8px; background:linear-gradient(180deg,#0d192c,#0a1526); cursor:pointer; }
+.optimizer-stat-card:hover,.optimizer-stat-card:focus-visible { border-color:#3b709f; background:#102039; box-shadow:0 0 0 2px rgba(37,201,245,.06); outline:none; }
+.optimizer-stat-card.is-total { border-color:rgba(37,201,245,.42); background:linear-gradient(180deg,#10243d,#0b192c); }
+.optimizer-stat-summary { grid-area:summary; display:flex; align-items:baseline; gap:8px; min-width:0; }
+.optimizer-stat-name { flex:0 0 auto; color:#83a4ca; font-size:9px; font-weight:900; letter-spacing:.05em; text-transform:uppercase; }
+.optimizer-stat-current { min-width:0; overflow:hidden; color:#f5f9ff; font-size:10px; font-weight:850; text-overflow:ellipsis; white-space:nowrap; }
+.optimizer-stat-card.is-total .optimizer-stat-current { color:#74dcff; font-size:12px; }
+.optimizer-stat-inputs { grid-area:inputs; display:grid; grid-template-columns:repeat(2,54px); width:max-content; gap:5px; }
+.optimizer-monster-card .stat-input { width:54px; height:28px; padding:0 5px; border:1px solid #294468; border-radius:5px; outline:none; background:#071326; color:#fff; font-size:10px; font-weight:700; text-align:center; }
+.optimizer-monster-card .stat-input::placeholder { color:#607a9d; font-size:8px; font-weight:900; text-transform:uppercase; opacity:1; }
+.optimizer-monster-card .stat-input:focus,.optimizer-number-input:focus { border-color:#25c9f5; box-shadow:0 0 0 2px rgba(37,201,245,.09); }
+.optimizer-section-advanced { display:grid; grid-template-columns:minmax(0,1fr) 88px; align-items:center; gap:10px; padding:12px 0 0; border-bottom:0; }
+.optimizer-advanced-title { color:#73d7ff; font-size:10px; font-weight:900; }
+.optimizer-advanced-description { margin-top:2px; color:#6f84a2; font-size:9px; }
+.optimizer-number-input { width:100%; height:31px; padding:0 8px; border:1px solid #294468; border-radius:5px; outline:none; background:#081426; color:#fff; font-size:11px; font-weight:800; text-align:center; }
+
+@media (max-width:500px) {
+  .optimizer-monster-card { width:100%; }
+  .optimizer-three-columns { grid-template-columns:1fr; }
+  .optimizer-stats-grid { grid-template-columns:repeat(2,minmax(0,1fr)); width:100%; }
+  .optimizer-stat-card { width:100%; }
+  .optimizer-section-heading { align-items:flex-start; flex-direction:column; gap:4px; }
+  .optimizer-section-hint { white-space:normal; }
 }
 
-.result-rune {
-  position: relative;
-  display: inline-block;
-  flex: 0 0 32px;
-  width: 32px;
-  height: 32px;
-  overflow: visible;
-  background: transparent;
-}
-
-.result-rune-set,
-.result-rune-slot {
-  position: absolute;
+/* Build equipment */
+.result-row.is-equipped { background: rgba(37, 201, 245, 0.1); }
+.result-row.is-locked { background: rgba(72, 112, 174, 0.18); box-shadow: inset 3px 0 #25c9f5; }
+.results-table td:first-child { min-width: 82px; }
+.result-row-index { display: block; color: #91a6c3; font-size: 10px; }
+.result-status-badge { display: inline-flex; margin-top: 4px; padding: 2px 6px; border: 1px solid #31557d; border-radius: 999px; background: #11253f; color: #8fdfff; font-size: 9px; font-weight: 800; white-space: nowrap; }
+.result-status-badge.locked { border-color: #25c9f5; background: #12304d; color: #c4f3ff; }
+.result-status-badge.conflict { border-color: #4a5668; background: #151d29; color: #8490a1; }
+.build-row-actions { display: flex; align-items: center; justify-content: center; gap: 5px; min-width: 126px; }
+.build-action-button { display: inline-flex; align-items: center; justify-content: center; gap: 5px; min-height: 30px; padding: 5px 8px; border: 1px solid #31557d; border-radius: 6px; background: #11233b; color: #dcecff; font-size: 10px; font-weight: 800; white-space: nowrap; }
+.build-action-button.equip:hover { border-color: #25c9f5; background: #12304d; color: #bcefff; }
+.build-action-button.equipped { border-color: rgba(37, 201, 245, 0.55); background: rgba(37, 201, 245, 0.12); color: #aeeeff; }
+.build-lock-button { display: grid; width: 30px; height: 30px; padding: 0; place-items: center; border: 1px solid #31557d; border-radius: 6px; background: #102139; }
+.build-lock-button.is-locked { border-color: #25c9f5; background: #12304d; }
+.equipped-builds-bar { margin: 16px 0; padding: 10px; border: 1px solid #263f65; border-radius: 9px; background: #0d192c; }
+.equipped-builds-title { margin-bottom: 8px; color: #73d7ff; font-size: 11px; font-weight: 900; text-transform: uppercase; }
+.equipped-builds-list { display: flex; flex-wrap: wrap; gap: 7px; }
+.equipped-build-chip { display: inline-flex; align-items: center; gap: 7px; padding: 5px 9px; border: 1px solid #29466f; border-radius: 7px; background: #13233b; color: #fff; }
+.equipped-build-chip.is-locked { border-color: #25c9f5; }
+.equipped-build-chip img { width: 28px; height: 28px; border-radius: 5px; object-fit: cover; }
+.equipped-build-chip-status { color: #8fdfff; font-size: 9px; font-weight: 800; }
+.build-modal-backdrop {
+  position: fixed;
   inset: 0;
-  width: 32px !important;
-  height: 32px !important;
-  object-fit: contain;
-  background: transparent;
-  pointer-events: none;
-}
-
-.result-rune-set {
-  z-index: 1;
-}
-
-.result-rune-slot {
-  z-index: 2;
-}
-
-.result-rune-stars {
-  position: absolute;
-  z-index: 3;
-  top: -2px;
-  left: 50%;
-  max-width: 32px;
-  overflow: hidden;
-  transform: translateX(-50%);
-  color: #ff55cf;
-  font-size: 6px;
-  font-weight: 900;
-  line-height: 1;
-  letter-spacing: -1px;
-  white-space: nowrap;
-  text-shadow:
-          -1px -1px 0 #24051f,
-          1px -1px 0 #24051f,
-          -1px 1px 0 #24051f,
-          1px 1px 0 #24051f;
-}
-
-.optimizer-monster-card {
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  max-width: 100%;
-  padding: 12px;
-  border: 1px solid #243c60;
-  border-radius: 10px;
-  background: #101b2e;
-  box-shadow: 0 10px 26px rgba(0, 0, 0, 0.22);
-}
-
-.optimizer-monster-header {
+  z-index: 120000;
   display: grid;
-  grid-template-columns: 40px minmax(0, 1fr) 28px;
-  align-items: center;
-  gap: 10px;
-  padding-bottom: 12px;
-  border-bottom: 1px solid rgba(82, 118, 163, 0.22);
-}
-
-.optimizer-monster-header .monster-image-placeholder {
-  width: 40px;
-  height: 40px;
-  overflow: hidden;
-  border: 1px solid #4a709e;
-  border-radius: 7px;
-  background: #081426;
-}
-
-.optimizer-monster-header .monster-image {
-  display: block;
   width: 100%;
+  max-width: none;
   height: 100%;
-  object-fit: cover;
-}
-
-.optimizer-monster-name {
-  min-width: 0;
+  max-height: none;
   margin: 0;
-  overflow: hidden;
-  color: #f4f8ff;
-  font-size: 16px;
-  font-weight: 800;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.optimizer-monster-card .monster-delete-button {
-  all: unset;
-  display: grid;
-  width: 26px;
-  height: 26px;
+  padding: 20px;
   place-items: center;
-  border-radius: 6px;
-  color: #8298b8;
-  cursor: pointer;
-  transition: 120ms ease;
-}
-
-.optimizer-monster-card .monster-delete-button:hover {
-  background: rgba(242, 127, 140, 0.12);
-  color: #f27f8c;
-}
-
-.optimizer-section {
-  position: relative;
-  padding: 13px 0;
   border: 0;
-  border-bottom: 1px solid rgba(82, 118, 163, 0.18);
-  background: transparent;
+  background: rgba(4, 2, 1, 0.82);
+  backdrop-filter: blur(5px);
 }
 
-.optimizer-section-title {
-  position: static;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 8px;
-  padding: 0;
-  border: 0;
-  background: transparent;
-  color: #73d7ff;
-  font-size: 10px;
-  font-weight: 900;
-  letter-spacing: 0.09em;
-  line-height: 1;
-  text-transform: uppercase;
+.build-modal {
+  width: min(980px, 100%);
+  max-height: calc(100vh - 40px);
+  overflow: auto;
+  padding: 16px;
+  border: 2px solid #a16a08;
+  border-radius: 10px;
+  background:
+          radial-gradient(circle at top, rgba(126, 67, 16, 0.24), transparent 38%),
+          linear-gradient(180deg, #2a1609 0%, #160b06 100%);
+  color: #fff0c7;
+  box-shadow:
+          0 0 0 1px #3b200d,
+          0 24px 70px rgba(0, 0, 0, 0.72),
+          inset 0 1px rgba(255, 205, 114, 0.12);
 }
 
-.optimizer-section-title::after {
-  content: "";
-  flex: 1;
-  height: 1px;
-  background: linear-gradient(90deg, rgba(115, 215, 255, 0.35), transparent);
-}
-
-.optimizer-section-focus {
-  padding-top: 12px;
-}
-
-.optimizer-subsection-label {
-  margin: 10px 0 6px;
-  color: #7f94b3;
-  font-size: 9px;
-  font-weight: 800;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-}
-
-.optimizer-three-columns {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 6px;
-  min-width: 0;
-}
-
-.optimizer-three-columns > div {
-  min-width: 0;
-}
-
-.optimizer-slots-grid {
-  gap: 6px;
-}
-
-.optimizer-slot-control {
-  position: relative;
-  min-width: 0;
-}
-
-.optimizer-slot-control > div {
-  min-width: 0;
-}
-
-.optimizer-slot-number {
-  position: absolute;
-  z-index: 4;
-  top: 9px;
-  left: 8px;
-  display: grid;
-  width: 18px;
-  height: 18px;
-  place-items: center;
-  border-radius: 4px;
-  background: #1b3c69;
-  color: #a9dfff;
-  font-size: 10px;
-  font-weight: 900;
-  pointer-events: none;
-}
-
-.optimizer-slot-control .css-b62m3t-container > div:first-of-type {
-  padding-left: 22px;
-}
-
-.optimizer-section-heading {
+.build-modal-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 10px;
-  margin-bottom: 9px;
+  gap: 14px;
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #6e4017;
 }
 
-.optimizer-section-heading .optimizer-section-title {
-  flex: 1;
-  margin-bottom: 0;
-}
-
-.optimizer-section-hint {
-  flex: 0 0 auto;
-  color: #617b9d;
-  font-size: 8px;
-  font-weight: 700;
-  white-space: nowrap;
-}
-
-.optimizer-stats-grid {
-  display: grid;
-  grid-template-columns: repeat(2, 178px);
-  justify-content: start;
-  gap: 7px;
-  width: max-content;
-  max-width: 100%;
-}
-
-.optimizer-stat-card {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr);
-  grid-template-areas:
-    "summary"
-    "inputs";
-  align-items: center;
-  row-gap: 6px;
-  column-gap: 7px;
-  width: 178px;
-  min-width: 0;
-  padding: 8px;
-  overflow: hidden;
-  border: 1px solid #263f63;
-  border-radius: 8px;
-  background: linear-gradient(180deg, #0d192c, #0a1526);
-  cursor: pointer;
-  transition:
-          border-color 120ms ease,
-          background-color 120ms ease,
-          box-shadow 120ms ease,
-          transform 120ms ease;
-}
-
-.optimizer-stat-card:hover,
-.optimizer-stat-card:focus-visible {
-  border-color: #3b709f;
-  background: #102039;
-  box-shadow: 0 0 0 2px rgba(37, 201, 245, 0.06);
-  outline: none;
-}
-
-.optimizer-stat-card:active {
-  transform: translateY(1px);
-}
-
-.optimizer-stat-card.is-total {
-  border-color: rgba(37, 201, 245, 0.42);
-  background: linear-gradient(180deg, #10243d, #0b192c);
-}
-
-.optimizer-stat-summary {
-  grid-area: summary;
+.build-modal-title-group {
   display: flex;
-  align-items: baseline;
-  gap: 8px;
-  min-width: 0;
+  align-items: center;
+  gap: 12px;
 }
 
-.optimizer-stat-name {
-  flex: 0 0 auto;
-  color: #83a4ca;
-  font-size: 9px;
-  font-weight: 900;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
+.build-modal-monster-image {
+  width: 46px;
+  height: 46px;
+  border: 2px solid #c88419;
+  border-radius: 7px;
+  object-fit: cover;
+  background: #120905;
+  box-shadow: 0 0 12px rgba(211, 133, 20, 0.24);
 }
 
-.optimizer-stat-current {
+.build-modal-header h2 {
+  margin: 0;
+  color: #ffb43b;
+  font-size: 22px;
+}
+
+.build-modal-header span {
+  color: #cba66d;
+  font-size: 12px;
+}
+
+.build-modal-close {
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border: 1px solid #81501e;
+  border-radius: 7px;
+  background: #32190d;
+  color: #ffd38d;
+}
+
+.build-modal-close:hover {
+  border-color: #e39a2d;
+  background: #4a260f;
+  color: #fff2d5;
+}
+
+.build-modal-runes {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.build-modal-rune {
   min-width: 0;
   overflow: hidden;
-  color: #f5f9ff;
-  font-size: 10px;
-  font-weight: 850;
-  letter-spacing: -0.01em;
+  border: 1px solid #7d4c18;
+  border-radius: 8px;
+  background:
+          linear-gradient(135deg, rgba(255, 181, 58, 0.06), transparent 45%),
+          #211107;
+  box-shadow:
+          inset 0 0 0 1px rgba(255, 202, 112, 0.04),
+          0 5px 14px rgba(0, 0, 0, 0.3);
+}
+
+.build-modal-rune-heading {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border-bottom: 1px solid #593314;
+  background: #30170a;
+}
+
+.build-modal-rune-slot {
+  display: grid;
+  flex: 0 0 24px;
+  width: 24px;
+  height: 24px;
+  place-items: center;
+  border: 1px solid #9e6a22;
+  border-radius: 50%;
+  color: #ffc761;
+  font-size: 11px;
+  font-weight: 900;
+}
+
+.build-modal-rune-title {
+  min-width: 0;
+}
+
+.build-modal-rune-title strong {
+  display: block;
+  overflow: hidden;
+  color: #ffad32;
+  font-size: 12px;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.optimizer-stat-card.is-total .optimizer-stat-current {
-  color: #74dcff;
+.build-modal-rune-title span {
+  display: block;
+  margin-top: 2px;
+  overflow: visible;
+  color: #ffd326;
+  font-size: 8px;
+  letter-spacing: -1px;
+  line-height: 1;
+  white-space: nowrap;
+  text-shadow: 0 1px #552300;
+}
+
+.build-modal-rune-body {
+  display: grid;
+  grid-template-columns: 58px minmax(0, 1fr);
+  align-items: center;
+  gap: 10px;
+  padding: 12px 10px;
+}
+
+.build-modal-rune-visual {
+  display: grid;
+  width: 58px;
+  height: 58px;
+  place-items: center;
+  border: 1px solid #714315;
+  border-radius: 7px;
+  background: #140a05;
+}
+
+.build-modal-rune-visual .result-rune {
+  transform: scale(1.55);
+  transform-origin: center;
+}
+
+.build-modal-rune-summary {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.build-modal-rune-summary b {
+  color: #fff0d0;
+  font-size: 13px;
+}
+
+.build-modal-rune-summary span {
+  color: #d2af78;
+  font-size: 11px;
+}
+
+
+.build-modal-rune-stats {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 3px;
+  color: #f3d6a2;
+  font-size: 11px;
+  line-height: 1.25;
+}
+
+.build-modal-rune-main-stat {
+  margin-bottom: 2px;
+  color: #fff0d0;
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.build-modal-rune-innate-stat {
+  color: #d7bc8e;
+}
+
+.build-modal-rune-empty {
+  color: #a88962;
+  font-style: italic;
+}
+
+.build-modal-rune-bonus {
+  padding: 8px 10px;
+  border-top: 1px solid #593314;
+  color: #b7e226;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.build-modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid #6e4017;
+}
+
+.build-modal-actions button {
+  border-color: #82521e;
+  background: #351b0d;
+  color: #ffe2ad;
+}
+
+.build-modal-actions button:hover:not(:disabled) {
+  border-color: #e49b2e;
+  background: #4a270f;
+  color: #fff4dc;
+}
+
+@media (max-width: 820px) {
+  .build-modal-runes {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 560px) {
+  .build-modal-runes {
+    grid-template-columns: 1fr;
+  }
+}
+
+.equipped-builds-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+.equipped-builds-header .equipped-builds-title { margin-bottom: 0; }
+.equipped-builds-empty { color: #7d91ad; font-size: 11px; }
+.clear-equipped-builds-button {
+  padding: 6px 9px;
+  border: 1px solid #733747;
+  border-radius: 6px;
+  background: #2c1720;
+  color: #f3a7b3;
+  font-size: 10px;
+  font-weight: 800;
+}
+.clear-equipped-builds-button:hover {
+  border-color: #e06c7d;
+  background: #45202b;
+  color: #ffd6dc;
+}
+@media (max-width: 560px) {
+  .equipped-builds-header {
+    align-items: stretch;
+    flex-direction: column;
+  }
+}
+
+.sidebar > .equipped-builds-bar {
+  width: 100%;
+  margin: 12px 0 0;
+}
+
+.rune-conflict-shell {
+  display: inline-flex;
+  width: 32px;
+  height: 32px;
+  border-radius: 4px;
+  filter: brightness(0.42) saturate(0.55);
+  box-shadow: inset 0 0 0 1px #59677a;
+}
+.result-rune-owner {
+  position: absolute;
+  z-index: 8;
+  left: 1px;
+  bottom: 1px;
+  width: 13px;
+  height: 13px;
+  min-width: 13px;
+  max-width: 13px;
+  min-height: 13px;
+  max-height: 13px;
+  border: 1px solid #25c9f5;
+  border-radius: 2px;
+  object-fit: cover;
+  background: #15100a;
+  pointer-events: none;
+}
+.result-rune-owner.is-previous {
+  border-color: #69798d;
+  filter: grayscale(1);
+  opacity: 0.72;
+}
+.conflict-visibility-filter {
+  padding-right: 10px;
+  border-right: 1px solid #3a4962;
+  color: #8fdfff;
+  font-weight: 800;
+}
+
+
+/* Rune details in equipped and locked build preview */
+.build-modal-runes {
+  grid-template-columns: repeat(3, minmax(250px, 1fr));
+  align-items: stretch;
+}
+
+.build-modal-rune {
+  display: flex;
+  min-height: 270px;
+  flex-direction: column;
+  border: 1px solid #7b541d;
+  border-radius: 10px;
+  background: linear-gradient(180deg, #2c1a0d 0%, #1b1009 100%);
+  color: #fff4d1;
+  box-shadow: 0 8px 22px rgba(0, 0, 0, 0.48);
+}
+
+.build-modal-rune-heading {
+  padding: 10px 12px;
+  border-bottom: 0;
+  background: transparent;
+}
+
+.build-modal-rune-slot {
+  border-color: #7b541d;
+  background: rgba(36, 20, 8, 0.78);
+  color: #dba43c;
+}
+
+.build-modal-rune-title strong {
+  color: #e8a43e;
+  font-size: 14px;
+}
+
+.build-modal-rune-title span {
+  color: #ffdf29;
+  font-size: 8px;
+}
+
+.build-modal-rune-body {
+  grid-template-columns: 82px minmax(0, 1fr);
+  align-items: start;
+  padding: 4px 12px 10px;
+}
+
+.build-modal-rune-visual {
+  width: 76px;
+  height: 76px;
+  border: 0;
+  background: transparent;
+}
+
+.build-modal-rune-visual .result-rune {
+  transform: scale(2.15);
+}
+
+.build-modal-rune-stats {
+  gap: 5px;
+  color: #fff4d1;
+  font-size: 13px;
+  line-height: 1.2;
+}
+
+.build-modal-rune-main-stat {
+  margin: 0;
+  color: #fff4d1;
+  font-size: 16px;
+  font-weight: 500;
+}
+
+.build-modal-rune-quality {
+  align-self: flex-start;
+  margin: 2px 0 3px;
+  padding: 4px 10px;
+  border-radius: 6px;
+  background: #8c3717;
+  color: #ffd58c;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.build-modal-rune-innate-stat {
+  color: #f5e4bb;
   font-size: 12px;
 }
 
-.optimizer-stat-inputs {
-  grid-area: inputs;
-  display: grid;
-  grid-template-columns: repeat(2, 54px);
-  width: max-content;
-  max-width: 100%;
-  justify-content: start;
-  gap: 5px;
-  min-width: 0;
+.build-modal-rune-divider {
+  height: 1px;
+  margin: 4px 0;
+  background: #5a381b;
 }
 
-.optimizer-monster-card .stat-input {
-  display: block;
-  width: 54px;
-  min-width: 0;
-  height: 28px;
-  padding: 0 5px;
-  border: 1px solid #294468;
-  border-radius: 5px;
-  outline: none;
-  background: #071326;
-  color: #fff;
-  font-size: 10px;
-  font-weight: 700;
-  text-align: center;
-  transition:
-          border-color 120ms ease,
-          box-shadow 120ms ease,
-          background-color 120ms ease;
+.build-rune-effect-grind {
+  color: #64d27a;
 }
 
-.optimizer-monster-card .stat-input::placeholder {
-  color: #607a9d;
-  font-size: 8px;
-  font-weight: 900;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  opacity: 1;
-}
-
-.optimizer-monster-card .stat-input:hover {
-  border-color: #365f8b;
-  background: #0a192d;
-}
-
-.optimizer-monster-card .stat-input:focus {
-  border-color: #25c9f5;
-  background: #0a192d;
-  box-shadow: 0 0 0 2px rgba(37, 201, 245, 0.09);
-}
-
-.optimizer-section-advanced {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) 88px;
-  align-items: center;
-  gap: 10px;
-  padding: 12px 0 0;
-  border-bottom: 0;
-}
-
-.optimizer-advanced-title {
-  color: #73d7ff;
-  font-size: 10px;
-  font-weight: 900;
-}
-
-.optimizer-advanced-description {
-  margin-top: 2px;
-  color: #6f84a2;
-  font-size: 9px;
-}
-
-.optimizer-number-input {
-  width: 100%;
-  height: 31px;
-  padding: 0 8px;
-  border: 1px solid #294468;
-  border-radius: 5px;
-  outline: none;
-  background: #081426;
-  color: #fff;
-  font-size: 11px;
+.build-modal-rune-bonus {
+  margin-top: auto;
+  padding: 10px 12px;
+  border-top: 1px solid #5a381b;
+  color: #a7d63e;
+  font-size: 13px;
   font-weight: 800;
-  text-align: center;
 }
 
-.optimizer-number-input:focus {
-  border-color: #25c9f5;
-  box-shadow: 0 0 0 2px rgba(37, 201, 245, 0.08);
-}
-
-@media (max-width: 500px) {
-  .optimizer-monster-card {
-    width: 100%;
+@media (max-width: 900px) {
+  .build-modal-runes {
+    grid-template-columns: repeat(2, minmax(250px, 1fr));
   }
+}
 
-  .optimizer-three-columns {
+@media (max-width: 600px) {
+  .build-modal-runes {
     grid-template-columns: 1fr;
-  }
-
-  .optimizer-stats-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    width: 100%;
-  }
-
-  .optimizer-stat-card {
-    width: 100%;
-  }
-
-  .optimizer-section-heading {
-    align-items: flex-start;
-    flex-direction: column;
-    gap: 4px;
-  }
-
-  .optimizer-section-hint {
-    white-space: normal;
-  }
-
-  .optimizer-stat-inputs {
-    grid-template-columns: repeat(2, 54px);
-    width: max-content;
   }
 }

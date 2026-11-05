@@ -2,10 +2,24 @@ import { useEffect, useMemo, useState } from "react";
 import type { OptimizationResult } from "../../types/OptimizationResult";
 import type { VisibleResultColumns } from "./ResultsPanel";
 import RuneVisual from "./RuneVisual";
+import {
+  equipBuild,
+  getBuildConflicts,
+  getEquippedBuilds,
+  getRuneOwnerState,
+  isSameBuild,
+  removeEquippedBuild,
+  subscribeEquippedBuilds,
+  toggleBuildLock,
+} from "../../services/equippedBuildStorage";
 
 interface Props {
   results: OptimizationResult[];
   visibleColumns: VisibleResultColumns;
+  monsterName: string;
+  monsterImageUrl?: string;
+  importMode?: "NORMAL" | "RTA" | "SIEGE";
+  showConflictingBuilds: boolean;
 }
 
 type SortableColumn =
@@ -27,81 +41,86 @@ type SortDirection = "asc" | "desc";
 const PAGE_SIZE = 25;
 
 function formatDecimal(value: number): string {
-  if (!Number.isFinite(value)) {
-    return "0";
-  }
-
-  return Math.ceil(value).toLocaleString("fr-FR");
-}
-
-function compareNumbers(
-  firstValue: number,
-  secondValue: number,
-  direction: SortDirection
-): number {
-  return direction === "asc"
-    ? firstValue - secondValue
-    : secondValue - firstValue;
+  return Number.isFinite(value)
+    ? Math.ceil(value).toLocaleString("fr-FR")
+    : "0";
 }
 
 export default function MonsterResultsTable({
   results,
   visibleColumns,
+  monsterName,
+  monsterImageUrl,
+  importMode = "NORMAL",
+  showConflictingBuilds,
 }: Props) {
   const [sortColumn, setSortColumn] = useState<SortableColumn>("spd");
   const [sortDirection, setSortDirection] = useState<SortDirection>("desc");
   const [currentPage, setCurrentPage] = useState(1);
+  const [equippedBuilds, setEquippedBuilds] = useState(() =>
+    getEquippedBuilds()
+  );
+
+  useEffect(() => {
+    return subscribeEquippedBuilds(() => {
+      setEquippedBuilds(getEquippedBuilds());
+    });
+  }, []);
 
   const sortedResults = useMemo(() => {
-    return [...results].sort((firstResult, secondResult) => {
-      const comparison = compareNumbers(
-        firstResult[sortColumn],
-        secondResult[sortColumn],
-        sortDirection
-      );
+    const equippedForMonster = equippedBuilds.find(
+      (item) =>
+        item.monsterId === results[0]?.monsterId ||
+        item.monsterName === monsterName
+    );
+    const sourceResults =
+      equippedForMonster &&
+      !results.some((result) => isSameBuild(equippedForMonster, result))
+        ? [equippedForMonster.build, ...results]
+        : [...results];
 
-      if (comparison !== 0) {
-        return comparison;
-      }
+    return sourceResults
+      .filter(
+        (result) =>
+          showConflictingBuilds ||
+          getBuildConflicts(result, result.monsterId, monsterName).length ===
+            0 ||
+          isSameBuild(
+            equippedBuilds.find((item) => item.monsterId === result.monsterId),
+            result
+          )
+      )
+      .sort((first, second) => {
+        const difference =
+          sortDirection === "asc"
+            ? first[sortColumn] - second[sortColumn]
+            : second[sortColumn] - first[sortColumn];
 
-      for (let index = 0; index < 6; index++) {
-        const firstRuneId = firstResult.runeIds[index] ?? 0;
-        const secondRuneId = secondResult.runeIds[index] ?? 0;
+        if (difference !== 0) return difference;
 
-        if (firstRuneId !== secondRuneId) {
-          return firstRuneId - secondRuneId;
-        }
-      }
-
-      return 0;
-    });
-  }, [results, sortColumn, sortDirection]);
+        return first.runeIds.join("-").localeCompare(second.runeIds.join("-"));
+      });
+  }, [
+    results,
+    sortColumn,
+    sortDirection,
+    showConflictingBuilds,
+    equippedBuilds,
+    monsterName,
+  ]);
 
   const totalPages = Math.max(1, Math.ceil(sortedResults.length / PAGE_SIZE));
-
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [results]);
-
-  useEffect(() => {
-    if (currentPage > totalPages) {
-      setCurrentPage(totalPages);
-    }
-  }, [currentPage, totalPages]);
-
-  const pagedResults = useMemo(() => {
-    const startIndex = (currentPage - 1) * PAGE_SIZE;
-
-    return sortedResults.slice(startIndex, startIndex + PAGE_SIZE);
-  }, [sortedResults, currentPage]);
+  const page = Math.min(currentPage, totalPages);
+  const pagedResults = sortedResults.slice(
+    (page - 1) * PAGE_SIZE,
+    page * PAGE_SIZE
+  );
 
   const handleSort = (column: SortableColumn): void => {
     setCurrentPage(1);
 
     if (sortColumn === column) {
-      setSortDirection((previousDirection) =>
-        previousDirection === "asc" ? "desc" : "asc"
-      );
+      setSortDirection((value) => (value === "asc" ? "desc" : "asc"));
       return;
     }
 
@@ -109,15 +128,7 @@ export default function MonsterResultsTable({
     setSortDirection("desc");
   };
 
-  const getSortIcon = (column: SortableColumn): string => {
-    if (sortColumn !== column) {
-      return "";
-    }
-
-    return sortDirection === "asc" ? " ▲" : " ▼";
-  };
-
-  const renderSortableHeader = (column: SortableColumn, label: string) => (
+  const renderHeader = (column: SortableColumn, label: string) => (
     <th>
       <button
         type="button"
@@ -125,7 +136,7 @@ export default function MonsterResultsTable({
         onClick={() => handleSort(column)}
       >
         {label}
-        {getSortIcon(column)}
+        {sortColumn === column ? (sortDirection === "asc" ? " ▲" : " ▼") : ""}
       </button>
     </th>
   );
@@ -140,73 +151,201 @@ export default function MonsterResultsTable({
         <thead>
           <tr>
             <th>#</th>
-
+            <th>Action</th>
             {visibleColumns.runes && <th>RUNES</th>}
             {visibleColumns.sets && <th>SETS</th>}
-            {visibleColumns.hp && renderSortableHeader("hp", "HP")}
-            {visibleColumns.atk && renderSortableHeader("atk", "ATK")}
-            {visibleColumns.def && renderSortableHeader("def", "DEF")}
-            {visibleColumns.spd && renderSortableHeader("spd", "SPD")}
-            {visibleColumns.cr && renderSortableHeader("cr", "CR")}
-            {visibleColumns.cd && renderSortableHeader("cd", "DCC")}
-            {visibleColumns.acc && renderSortableHeader("acc", "ACC")}
-            {visibleColumns.res && renderSortableHeader("res", "RES")}
-            {visibleColumns.ehp && renderSortableHeader("ehp", "EHP")}
-            {visibleColumns.efficiency &&
-              renderSortableHeader("efficiency", "EFF")}
-            {visibleColumns.damage && renderSortableHeader("damage", "DMG")}
+            {visibleColumns.hp && renderHeader("hp", "HP")}
+            {visibleColumns.atk && renderHeader("atk", "ATK")}
+            {visibleColumns.def && renderHeader("def", "DEF")}
+            {visibleColumns.spd && renderHeader("spd", "SPD")}
+            {visibleColumns.cr && renderHeader("cr", "CR")}
+            {visibleColumns.cd && renderHeader("cd", "DCC")}
+            {visibleColumns.acc && renderHeader("acc", "ACC")}
+            {visibleColumns.res && renderHeader("res", "RES")}
+            {visibleColumns.ehp && renderHeader("ehp", "EHP")}
+            {visibleColumns.efficiency && renderHeader("efficiency", "EFF")}
+            {visibleColumns.damage && renderHeader("damage", "DMG")}
             {visibleColumns.slots && <th>2/4/6</th>}
           </tr>
         </thead>
 
         <tbody>
           {pagedResults.map((result, index) => {
-            const absoluteIndex = (currentPage - 1) * PAGE_SIZE + index + 1;
+            const equipped = equippedBuilds.find(
+              (item) =>
+                item.monsterId === result.monsterId ||
+                item.monsterName === monsterName
+            );
+            const selected = isSameBuild(equipped, result);
+            const conflicts = getBuildConflicts(
+              result,
+              result.monsterId,
+              monsterName
+            );
+            const lockedConflict = conflicts.some((item) => item.locked);
+            const rowClassName = selected
+              ? equipped?.locked
+                ? "result-row is-locked"
+                : "result-row is-equipped"
+              : "result-row";
 
             return (
-              <tr key={`${result.monsterId}-${result.runeIds.join("-")}`}>
-                <td>{absoluteIndex}</td>
+              <tr
+                className={rowClassName}
+                key={`${result.monsterId}-${result.runeIds.join("-")}`}
+              >
+                <td>
+                  <span className="result-row-index">
+                    {(page - 1) * PAGE_SIZE + index + 1}
+                  </span>
+
+                  {selected && (
+                    <span
+                      className={`result-status-badge ${
+                        equipped?.locked ? "locked" : "equipped"
+                      }`}
+                    >
+                      {equipped?.locked ? "🔒 Verrouillé" : "🛡✓ Équipé"}
+                    </span>
+                  )}
+
+                  {!selected && conflicts.length > 0 && (
+                    <span className="result-status-badge conflict">
+                      {lockedConflict ? "🔒 Conflit" : "🛡 Conflit"}
+                    </span>
+                  )}
+                </td>
+
+                <td>
+                  <div className="build-row-actions">
+                    {!selected ? (
+                      <button
+                        type="button"
+                        className="build-action-button equip"
+                        disabled={conflicts.length > 0}
+                        title={
+                          conflicts.length > 0
+                            ? `${conflicts.length} build(s) en conflit`
+                            : "Équiper ce build"
+                        }
+                        onClick={() =>
+                          equipBuild({
+                            monsterId: result.monsterId,
+                            monsterName,
+                            monsterImageUrl,
+                            mode: importMode,
+                            build: result,
+                            locked: false,
+                            equippedAt: Date.now(),
+                          })
+                        }
+                      >
+                        <span aria-hidden="true">🛡＋</span>
+                        <span>Équiper</span>
+                      </button>
+                    ) : (
+                      <>
+                        <button
+                          type="button"
+                          className="build-action-button equipped"
+                          disabled={equipped?.locked}
+                          title={
+                            equipped?.locked
+                              ? "Déverrouille le build avant de le déséquiper"
+                              : "Déséquiper ce build"
+                          }
+                          onClick={() =>
+                            removeEquippedBuild(
+                              equipped?.monsterId ?? result.monsterId
+                            )
+                          }
+                        >
+                          <span aria-hidden="true">
+                            {equipped?.locked ? "🛡✓" : "🛡−"}
+                          </span>
+                          <span>
+                            {equipped?.locked ? "Équipé" : "Déséquiper"}
+                          </span>
+                        </button>
+
+                        <button
+                          type="button"
+                          className={`build-lock-button ${
+                            equipped?.locked ? "is-locked" : ""
+                          }`}
+                          title={
+                            equipped?.locked
+                              ? "Déverrouiller le build"
+                              : "Verrouiller le build"
+                          }
+                          aria-label={
+                            equipped?.locked
+                              ? "Déverrouiller le build"
+                              : "Verrouiller le build"
+                          }
+                          onClick={() =>
+                            toggleBuildLock(
+                              equipped?.monsterId ?? result.monsterId
+                            )
+                          }
+                        >
+                          {equipped?.locked ? "🔒" : "🔓"}
+                        </button>
+                      </>
+                    )}
+                  </div>
+                </td>
 
                 {visibleColumns.runes && (
                   <td>
                     <div className="result-runes">
-                      {result.runes.map((rune) => (
-                        <RuneVisual key={rune.id} rune={rune} />
-                      ))}
+                      {result.runes.map((rune) => {
+                        const storedOwner = getRuneOwnerState(rune.id);
+                        const conflictOwner = conflicts.find((build) =>
+                          build.build.runeIds.includes(rune.id)
+                        );
+                        const conflict = conflictOwner !== undefined;
+                        const owner = storedOwner?.active ? storedOwner : null;
+
+                        return (
+                          <span
+                            className={
+                              conflict ? "rune-conflict-shell" : undefined
+                            }
+                            key={rune.id}
+                            title={
+                              conflict && owner
+                                ? `Rune utilisée par ${owner.monsterName}`
+                                : owner && !owner.active
+                                  ? `Dernier porteur : ${owner.monsterName}`
+                                  : undefined
+                            }
+                          >
+                            <RuneVisual rune={rune} owner={owner} />
+                          </span>
+                        );
+                      })}
                     </div>
                   </td>
                 )}
-
                 {visibleColumns.sets && <td>{result.sets.join(", ")}</td>}
-
                 {visibleColumns.hp && <td>{formatDecimal(result.hp)}</td>}
-
                 {visibleColumns.atk && <td>{formatDecimal(result.atk)}</td>}
-
                 {visibleColumns.def && <td>{formatDecimal(result.def)}</td>}
-
                 {visibleColumns.spd && (
                   <td className="spd-cell">{formatDecimal(result.spd)}</td>
                 )}
-
                 {visibleColumns.cr && <td>{formatDecimal(result.cr)}</td>}
-
                 {visibleColumns.cd && <td>{formatDecimal(result.cd)}</td>}
-
                 {visibleColumns.acc && <td>{formatDecimal(result.acc)}</td>}
-
                 {visibleColumns.res && <td>{formatDecimal(result.res)}</td>}
-
                 {visibleColumns.ehp && <td>{formatDecimal(result.ehp)}</td>}
-
                 {visibleColumns.efficiency && (
                   <td>{formatDecimal(result.efficiency)}</td>
                 )}
-
                 {visibleColumns.damage && (
                   <td>{formatDecimal(result.damage)}</td>
                 )}
-
                 {visibleColumns.slots && (
                   <td>
                     {result.slot2}, {result.slot4}, {result.slot6}
@@ -221,25 +360,19 @@ export default function MonsterResultsTable({
       <div className="pagination">
         <button
           type="button"
-          disabled={currentPage <= 1}
-          onClick={() =>
-            setCurrentPage((previousPage) => Math.max(1, previousPage - 1))
-          }
+          disabled={page <= 1}
+          onClick={() => setCurrentPage((value) => Math.max(1, value - 1))}
         >
           ◀
         </button>
-
         <span>
-          Page {currentPage} / {totalPages}
+          Page {page} / {totalPages}
         </span>
-
         <button
           type="button"
-          disabled={currentPage >= totalPages}
+          disabled={page >= totalPages}
           onClick={() =>
-            setCurrentPage((previousPage) =>
-              Math.min(totalPages, previousPage + 1)
-            )
+            setCurrentPage((value) => Math.min(totalPages, value + 1))
           }
         >
           ▶

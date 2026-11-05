@@ -5,6 +5,7 @@ import type { PreparedRune, RuneStats } from "../types/Rune";
 import { calculateBuildStats, type BuildCalculation } from "./statCalculator";
 import {
   findValidActiveSets,
+  getDisplayedStatValue,
   getRequiredSets,
   passesSlotFilters,
   passesStatFilters,
@@ -47,15 +48,7 @@ export interface MonsterOptimizationOutput {
   statistics: OptimizationStatistics;
 }
 
-type PartialBuildStats = RuneStats;
 type RemainingMaximums = SearchSpaceMaximums;
-
-interface OptimizationLimits {
-  resultLimit: number;
-  searchDepth: number;
-  maxBranches: number;
-  maxDurationMs: number;
-}
 
 let stopRequested = false;
 
@@ -63,7 +56,7 @@ export function resetOptimizationStop(): void {
   stopRequested = false;
 }
 
-function createEmptyPartialStats(): PartialBuildStats {
+function emptyStats(): RuneStats {
   return {
     hpFlat: 0,
     hpPercent: 0,
@@ -79,26 +72,7 @@ function createEmptyPartialStats(): PartialBuildStats {
   };
 }
 
-function createEmptyMaximums(): RemainingMaximums {
-  return {
-    hpFlat: 0,
-    hpPercent: 0,
-    atkFlat: 0,
-    atkPercent: 0,
-    defFlat: 0,
-    defPercent: 0,
-    spd: 0,
-    cr: 0,
-    cd: 0,
-    acc: 0,
-    res: 0,
-  };
-}
-
-function addRuneStats(
-  current: PartialBuildStats,
-  rune: PreparedRune
-): PartialBuildStats {
+function addRuneStats(current: RuneStats, rune: PreparedRune): RuneStats {
   return {
     hpFlat: current.hpFlat + rune.stats.hpFlat,
     hpPercent: current.hpPercent + rune.stats.hpPercent,
@@ -112,10 +86,6 @@ function addRuneStats(
     acc: current.acc + rune.stats.acc,
     res: current.res + rune.stats.res,
   };
-}
-
-function getRequiredSetNames(config: MonsterConfig): ReadonlySet<string> {
-  return new Set(getRequiredSets(config));
 }
 
 function getFocusList(config: MonsterConfig): OptimizableStat[] {
@@ -183,36 +153,35 @@ function compareRunes(
   second: PreparedRune,
   monster: Monster,
   focus: readonly OptimizableStat[],
-  requiredSetNames: ReadonlySet<string>
+  requiredSets: ReadonlySet<string>
 ): number {
-  const firstIsRequired =
-    requiredSetNames.has(first.setName) || first.setName === "Intangible";
-  const secondIsRequired =
-    requiredSetNames.has(second.setName) || second.setName === "Intangible";
+  const firstRequired =
+    requiredSets.has(first.setName) || first.setName === "Intangible";
+  const secondRequired =
+    requiredSets.has(second.setName) || second.setName === "Intangible";
+  if (firstRequired !== secondRequired) return firstRequired ? -1 : 1;
 
-  if (firstIsRequired !== secondIsRequired) {
-    return firstIsRequired ? -1 : 1;
-  }
-
-  for (const focusStat of focus) {
+  for (const stat of focus) {
     const difference =
-      getRuneFocusValue(second, focusStat, monster) -
-      getRuneFocusValue(first, focusStat, monster);
-
-    if (difference !== 0) {
-      return difference;
-    }
+      getRuneFocusValue(second, stat, monster) -
+      getRuneFocusValue(first, stat, monster);
+    if (difference !== 0) return difference;
   }
-
   return first.id - second.id;
 }
 
-function applyMainStatFilters(
-  runes: PreparedRune[],
-  config: MonsterConfig
-): PreparedRune[] {
-  return runes.filter((rune) => {
-    const acceptedMainStats =
+function createSlotRunes(
+  monster: Monster,
+  config: MonsterConfig,
+  availableRunes: PreparedRune[]
+): { slotRunes: SearchSlot[]; depthWasApplied: boolean } {
+  const focus = getFocusList(config);
+  const requiredSets = new Set(getRequiredSets(config));
+  const depth = Math.max(1, Math.floor(config.searchDepth ?? 5000));
+  let depthWasApplied = false;
+
+  const filtered = availableRunes.filter((rune) => {
+    const accepted =
       rune.slot === 2
         ? config.slot2MainStats
         : rune.slot === 4
@@ -220,233 +189,179 @@ function applyMainStatFilters(
           : rune.slot === 6
             ? config.slot6MainStats
             : [];
-
-    return (
-      acceptedMainStats.length === 0 ||
-      acceptedMainStats.includes(rune.mainStatName)
-    );
+    return accepted.length === 0 || accepted.includes(rune.mainStatName);
   });
-}
 
-function createSlotRunes(
-  monster: Monster,
-  config: MonsterConfig,
-  availableRunes: PreparedRune[]
-): {
-  slotRunes: SearchSlot[];
-  depthWasApplied: boolean;
-} {
-  const focus = getFocusList(config);
-  const requiredSetNames = getRequiredSetNames(config);
-  const filteredRunes = applyMainStatFilters(availableRunes, config);
-  const searchDepth = Math.max(1, Math.floor(config.searchDepth ?? 5000));
-
-  let depthWasApplied = false;
   const slotRunes: SearchSlot[] = [];
-
   for (let slot = 1; slot <= 6; slot++) {
-    let runes = filteredRunes
+    let runes = filtered
       .filter((rune) => rune.slot === slot)
-      .sort((first, second) =>
-        compareRunes(first, second, monster, focus, requiredSetNames)
-      );
-
-    if (runes.length > searchDepth) {
-      runes = runes.slice(0, searchDepth);
+      .sort((a, b) => compareRunes(a, b, monster, focus, requiredSets));
+    if (runes.length > depth) {
+      runes = runes.slice(0, depth);
       depthWasApplied = true;
     }
-
     slotRunes.push({ slot, runes });
   }
-
   return { slotRunes, depthWasApplied };
 }
 
-function getMaximumForSlot(
+function maxForSlot(
   runes: readonly PreparedRune[],
   selector: (stats: RuneStats) => number
 ): number {
   let maximum = 0;
-
-  for (const rune of runes) {
-    maximum = Math.max(maximum, selector(rune.stats));
-  }
-
+  for (const rune of runes) maximum = Math.max(maximum, selector(rune.stats));
   return maximum;
 }
 
 function buildRemainingMaximums(
   slotRunes: readonly SearchSlot[]
 ): RemainingMaximums[] {
-  const remainingMaximums = new Array<RemainingMaximums>(slotRunes.length + 1);
-
-  let runningMaximums = createEmptyMaximums();
-  remainingMaximums[slotRunes.length] = createEmptyMaximums();
+  const result = new Array<RemainingMaximums>(slotRunes.length + 1);
+  let running = emptyStats();
+  result[slotRunes.length] = emptyStats();
 
   for (let index = slotRunes.length - 1; index >= 0; index--) {
     const runes = slotRunes[index].runes;
-
-    runningMaximums = {
-      hpFlat:
-        runningMaximums.hpFlat +
-        getMaximumForSlot(runes, (stats) => stats.hpFlat),
-      hpPercent:
-        runningMaximums.hpPercent +
-        getMaximumForSlot(runes, (stats) => stats.hpPercent),
-      atkFlat:
-        runningMaximums.atkFlat +
-        getMaximumForSlot(runes, (stats) => stats.atkFlat),
-      atkPercent:
-        runningMaximums.atkPercent +
-        getMaximumForSlot(runes, (stats) => stats.atkPercent),
-      defFlat:
-        runningMaximums.defFlat +
-        getMaximumForSlot(runes, (stats) => stats.defFlat),
-      defPercent:
-        runningMaximums.defPercent +
-        getMaximumForSlot(runes, (stats) => stats.defPercent),
-      spd: runningMaximums.spd + getMaximumForSlot(runes, (stats) => stats.spd),
-      cr: runningMaximums.cr + getMaximumForSlot(runes, (stats) => stats.cr),
-      cd: runningMaximums.cd + getMaximumForSlot(runes, (stats) => stats.cd),
-      acc: runningMaximums.acc + getMaximumForSlot(runes, (stats) => stats.acc),
-      res: runningMaximums.res + getMaximumForSlot(runes, (stats) => stats.res),
+    running = {
+      hpFlat: running.hpFlat + maxForSlot(runes, (s) => s.hpFlat),
+      hpPercent: running.hpPercent + maxForSlot(runes, (s) => s.hpPercent),
+      atkFlat: running.atkFlat + maxForSlot(runes, (s) => s.atkFlat),
+      atkPercent: running.atkPercent + maxForSlot(runes, (s) => s.atkPercent),
+      defFlat: running.defFlat + maxForSlot(runes, (s) => s.defFlat),
+      defPercent: running.defPercent + maxForSlot(runes, (s) => s.defPercent),
+      spd: running.spd + maxForSlot(runes, (s) => s.spd),
+      cr: running.cr + maxForSlot(runes, (s) => s.cr),
+      cd: running.cd + maxForSlot(runes, (s) => s.cd),
+      acc: running.acc + maxForSlot(runes, (s) => s.acc),
+      res: running.res + maxForSlot(runes, (s) => s.res),
     };
-
-    remainingMaximums[index] = { ...runningMaximums };
+    result[index] = { ...running };
   }
-
-  return remainingMaximums;
+  return result;
 }
 
-function getOptimisticStats(
+function optimisticStats(
   monster: Monster,
-  partialStats: PartialBuildStats,
-  remaining: RemainingMaximums
+  partial: RuneStats,
+  remaining: RuneStats
 ) {
   const hp =
     monster.hp +
-    partialStats.hpFlat +
+    partial.hpFlat +
     remaining.hpFlat +
-    (monster.baseHp * (partialStats.hpPercent + remaining.hpPercent + 45)) /
-      100;
-
+    (monster.baseHp * (partial.hpPercent + remaining.hpPercent + 45)) / 100;
   const atk =
     monster.atk +
-    partialStats.atkFlat +
+    partial.atkFlat +
     remaining.atkFlat +
-    (monster.baseAtk * (partialStats.atkPercent + remaining.atkPercent + 35)) /
-      100;
-
+    (monster.baseAtk * (partial.atkPercent + remaining.atkPercent + 35)) / 100;
   const def =
     monster.def +
-    partialStats.defFlat +
+    partial.defFlat +
     remaining.defFlat +
-    (monster.baseDef * (partialStats.defPercent + remaining.defPercent + 45)) /
-      100;
-
+    (monster.baseDef * (partial.defPercent + remaining.defPercent + 45)) / 100;
   const spd =
-    monster.spd + partialStats.spd + remaining.spd + monster.baseSpd * 0.25;
-
-  const cr = monster.cr + partialStats.cr + remaining.cr + 36;
-  const cd = monster.cd + partialStats.cd + remaining.cd + 40;
-  const acc = monster.acc + partialStats.acc + remaining.acc + 60;
-  const res = monster.res + partialStats.res + remaining.res + 60;
+    monster.spd + partial.spd + remaining.spd + monster.baseSpd * 0.25;
+  const cr = monster.cr + partial.cr + remaining.cr + 36;
+  const cd = monster.cd + partial.cd + remaining.cd + 40;
+  const acc = monster.acc + partial.acc + remaining.acc + 60;
+  const res = monster.res + partial.res + remaining.res + 60;
   const ehp = (hp * (1140 + def)) / 1000;
-  const effectiveCr = Math.min(100, Math.max(0, cr));
-  const damage = atk * (1 + (effectiveCr / 100) * (Math.max(0, cd) / 100));
-
   const efficiency =
-    partialStats.hpPercent +
+    partial.hpPercent +
     remaining.hpPercent +
-    partialStats.atkPercent +
+    partial.atkPercent +
     remaining.atkPercent +
-    partialStats.defPercent +
+    partial.defPercent +
     remaining.defPercent +
-    (partialStats.spd + remaining.spd) * 2 +
-    (partialStats.cr + remaining.cr) * 1.5 +
-    partialStats.cd +
+    (partial.spd + remaining.spd) * 2 +
+    (partial.cr + remaining.cr) * 1.5 +
+    partial.cd +
     remaining.cd +
-    partialStats.acc +
+    partial.acc +
     remaining.acc +
-    partialStats.res +
+    partial.res +
     remaining.res;
+  return { hp, atk, def, spd, cr, cd, acc, res, ehp, efficiency };
+}
 
-  return { hp, atk, def, spd, cr, cd, acc, res, ehp, damage, efficiency };
+function belowDisplayedMinimum(
+  value: number,
+  minimum: number | undefined
+): boolean {
+  return minimum !== undefined && getDisplayedStatValue(value) < minimum;
+}
+
+function aboveDisplayedMaximum(
+  value: number,
+  maximum: number | undefined
+): boolean {
+  return maximum !== undefined && getDisplayedStatValue(value) > maximum;
 }
 
 function canStillReachMinimums(
   monster: Monster,
-  partialStats: PartialBuildStats,
-  remaining: RemainingMaximums,
+  partial: RuneStats,
+  remaining: RuneStats,
   config: MonsterConfig
 ): boolean {
-  const optimistic = getOptimisticStats(monster, partialStats, remaining);
-  const constraints = config.stats;
-
+  const value = optimisticStats(monster, partial, remaining);
+  const c = config.stats;
   return !(
-    (constraints.hpMin !== undefined && optimistic.hp < constraints.hpMin) ||
-    (constraints.atkMin !== undefined && optimistic.atk < constraints.atkMin) ||
-    (constraints.defMin !== undefined && optimistic.def < constraints.defMin) ||
-    (constraints.spdMin !== undefined && optimistic.spd < constraints.spdMin) ||
-    (constraints.crMin !== undefined && optimistic.cr < constraints.crMin) ||
-    (constraints.cdMin !== undefined && optimistic.cd < constraints.cdMin) ||
-    (constraints.accMin !== undefined && optimistic.acc < constraints.accMin) ||
-    (constraints.resMin !== undefined && optimistic.res < constraints.resMin) ||
-    (constraints.ehpMin !== undefined && optimistic.ehp < constraints.ehpMin) ||
-    (constraints.efficiencyMin !== undefined &&
-      optimistic.efficiency < constraints.efficiencyMin)
+    belowDisplayedMinimum(value.hp, c.hpMin) ||
+    belowDisplayedMinimum(value.atk, c.atkMin) ||
+    belowDisplayedMinimum(value.def, c.defMin) ||
+    belowDisplayedMinimum(value.spd, c.spdMin) ||
+    belowDisplayedMinimum(value.cr, c.crMin) ||
+    belowDisplayedMinimum(value.cd, c.cdMin) ||
+    belowDisplayedMinimum(value.acc, c.accMin) ||
+    belowDisplayedMinimum(value.res, c.resMin) ||
+    belowDisplayedMinimum(value.ehp, c.ehpMin) ||
+    belowDisplayedMinimum(value.efficiency, c.efficiencyMin)
   );
 }
 
 function canStillRespectMaximums(
   monster: Monster,
-  partialStats: PartialBuildStats,
+  partial: RuneStats,
   config: MonsterConfig
 ): boolean {
-  const constraints = config.stats;
-
-  const currentHp =
-    monster.hp +
-    partialStats.hpFlat +
-    (monster.baseHp * partialStats.hpPercent) / 100;
-  const currentAtk =
+  const c = config.stats;
+  const hp =
+    monster.hp + partial.hpFlat + (monster.baseHp * partial.hpPercent) / 100;
+  const atk =
     monster.atk +
-    partialStats.atkFlat +
-    (monster.baseAtk * partialStats.atkPercent) / 100;
-  const currentDef =
+    partial.atkFlat +
+    (monster.baseAtk * partial.atkPercent) / 100;
+  const def =
     monster.def +
-    partialStats.defFlat +
-    (monster.baseDef * partialStats.defPercent) / 100;
-  const currentSpd = monster.spd + partialStats.spd;
-  const currentCr = monster.cr + partialStats.cr;
-  const currentCd = monster.cd + partialStats.cd;
-  const currentAcc = monster.acc + partialStats.acc;
-  const currentRes = monster.res + partialStats.res;
-
+    partial.defFlat +
+    (monster.baseDef * partial.defPercent) / 100;
   return !(
-    (constraints.hpMax !== undefined && currentHp > constraints.hpMax) ||
-    (constraints.atkMax !== undefined && currentAtk > constraints.atkMax) ||
-    (constraints.defMax !== undefined && currentDef > constraints.defMax) ||
-    (constraints.spdMax !== undefined && currentSpd > constraints.spdMax) ||
-    (constraints.crMax !== undefined && currentCr > constraints.crMax) ||
-    (constraints.cdMax !== undefined && currentCd > constraints.cdMax) ||
-    (constraints.accMax !== undefined && currentAcc > constraints.accMax) ||
-    (constraints.resMax !== undefined && currentRes > constraints.resMax)
+    aboveDisplayedMaximum(hp, c.hpMax) ||
+    aboveDisplayedMaximum(atk, c.atkMax) ||
+    aboveDisplayedMaximum(def, c.defMax) ||
+    aboveDisplayedMaximum(monster.spd + partial.spd, c.spdMax) ||
+    aboveDisplayedMaximum(monster.cr + partial.cr, c.crMax) ||
+    aboveDisplayedMaximum(monster.cd + partial.cd, c.cdMax) ||
+    aboveDisplayedMaximum(monster.acc + partial.acc, c.accMax) ||
+    aboveDisplayedMaximum(monster.res + partial.res, c.resMax)
   );
 }
 
 function calculateEfficiency(calculation: BuildCalculation): number {
-  const stats = calculation.runeStats;
-
+  const s = calculation.runeStats;
   return (
-    stats.hpPercent +
-    stats.atkPercent +
-    stats.defPercent +
-    stats.spd * 2 +
-    stats.cr * 1.5 +
-    stats.cd +
-    stats.acc +
-    stats.res
+    s.hpPercent +
+    s.atkPercent +
+    s.defPercent +
+    s.spd * 2 +
+    s.cr * 1.5 +
+    s.cd +
+    s.acc +
+    s.res
   );
 }
 
@@ -458,54 +373,34 @@ function calculateScore(calculation: BuildCalculation): number {
   );
 }
 
-function createOptimizationResult(
+function createResult(
   monster: Monster,
   buildRunes: PreparedRune[],
   calculation: BuildCalculation
 ): OptimizationResult {
-  const slot2Rune = buildRunes.find((rune) => rune.slot === 2);
-  const slot4Rune = buildRunes.find((rune) => rune.slot === 4);
-  const slot6Rune = buildRunes.find((rune) => rune.slot === 6);
-
+  const ordered = [...buildRunes].sort((a, b) => a.slot - b.slot);
+  const slot2 = ordered.find((rune) => rune.slot === 2);
+  const slot4 = ordered.find((rune) => rune.slot === 4);
+  const slot6 = ordered.find((rune) => rune.slot === 6);
   return {
     monsterId: monster.id,
-    hp: calculation.stats.hp,
-    atk: calculation.stats.atk,
-    def: calculation.stats.def,
-    spd: calculation.stats.spd,
-    cr: calculation.stats.cr,
-    cd: calculation.stats.cd,
-    acc: calculation.stats.acc,
-    res: calculation.stats.res,
+    ...calculation.stats,
     ehp: calculation.ehp,
     efficiency: calculateEfficiency(calculation),
     damage: calculation.damage,
     sets: calculation.activeSets,
-    slot2: slot2Rune?.mainStatName ?? "",
-    slot4: slot4Rune?.mainStatName ?? "",
-    slot6: slot6Rune?.mainStatName ?? "",
-    runeIds: [...buildRunes]
-      .sort((first, second) => first.slot - second.slot)
-      .map((rune) => rune.id),
-    runes: [...buildRunes]
-      .sort((first, second) => first.slot - second.slot)
-      .map((rune) => ({
-        id: rune.id,
-        slot: rune.slot,
-        setName: rune.setName,
-        level: Math.max(0, Number(rune.source.upgrade_curr ?? 0)),
-        stars: Math.max(1, Math.min(6, Number(rune.source.class ?? 6))),
-      })),
+    slot2: slot2?.mainStatName ?? "",
+    slot4: slot4?.mainStatName ?? "",
+    slot6: slot6?.mainStatName ?? "",
+    runeIds: ordered.map((rune) => rune.id),
+    runes: ordered.map((rune) => ({
+      id: rune.id,
+      slot: rune.slot,
+      setName: rune.setName,
+      level: Math.max(0, Number(rune.source.upgrade_curr ?? 0)),
+      stars: Math.max(1, Math.min(6, Number(rune.source.class ?? 6))),
+    })),
     score: calculateScore(calculation),
-  };
-}
-
-function getOptimizationLimits(config: MonsterConfig): OptimizationLimits {
-  return {
-    resultLimit: Math.max(1, Math.floor(config.resultLimit ?? 1000)),
-    searchDepth: Math.max(1, Math.floor(config.searchDepth ?? 5000)),
-    maxBranches: Math.max(1, Math.floor(config.maxBranches ?? 5_000_000)),
-    maxDurationMs: Math.max(100, Math.floor(config.maxDurationMs ?? 30_000)),
   };
 }
 
@@ -516,9 +411,13 @@ export function optimizeMonsterRunes(
   onProgress?: (progress: OptimizationProgress) => void
 ): MonsterOptimizationOutput {
   const startTime = performance.now();
-  const limits = getOptimizationLimits(config);
+  const resultLimit = Math.max(1, Math.floor(config.resultLimit ?? 1000));
+  const maxBranches = Math.max(1, Math.floor(config.maxBranches ?? 5_000_000));
+  const maxDurationMs = Math.max(
+    100,
+    Math.floor(config.maxDurationMs ?? 30_000)
+  );
   const focus = getFocusList(config);
-
   const statistics: OptimizationStatistics = {
     branches: 0,
     terminalBuilds: 0,
@@ -541,173 +440,126 @@ export function optimizeMonsterRunes(
     config,
     availableRunes
   );
-
   statistics.approximate = depthWasApplied;
-
   const analysis = analyzeSearchSpace(monster, config, slotRunes);
-
   if (!analysis.possible) {
     statistics.elapsedMs = performance.now() - startTime;
     return { results: [], totalBuilds: 0, statistics };
   }
 
   const remainingMaximums = buildRemainingMaximums(slotRunes);
-  const topResults = new TopKResults(limits.resultLimit, focus);
+  const topResults = new TopKResults(resultLimit, focus);
   const buildRunes: PreparedRune[] = new Array(6);
   const usedRuneIds = new Set<number>();
   let lastProgressTime = startTime;
 
-  function updateStopState(): boolean {
+  const mustStop = (): boolean => {
     if (stopRequested) {
       statistics.stoppedByRequest = true;
       statistics.approximate = true;
       return true;
     }
-
-    if (statistics.branches >= limits.maxBranches) {
+    if (statistics.branches >= maxBranches) {
       statistics.stoppedByBranchLimit = true;
       statistics.approximate = true;
       return true;
     }
-
-    if (performance.now() - startTime >= limits.maxDurationMs) {
+    if (performance.now() - startTime >= maxDurationMs) {
       statistics.stoppedByDurationLimit = true;
       statistics.approximate = true;
       return true;
     }
-
     return false;
-  }
+  };
 
-  function sendProgress(force = false): void {
-    if (!onProgress) {
-      return;
-    }
-
-    const currentTime = performance.now();
-
-    if (!force && currentTime - lastProgressTime < 250) {
-      return;
-    }
-
-    lastProgressTime = currentTime;
+  const sendProgress = (force = false): void => {
+    if (!onProgress) return;
+    const now = performance.now();
+    if (!force && now - lastProgressTime < 250) return;
+    lastProgressTime = now;
     onProgress({
       explored: statistics.validBuilds,
       pruned: statistics.pruned,
       total: analysis.estimatedBuilds,
       branches: statistics.branches,
-      elapsedMs: currentTime - startTime,
+      elapsedMs: now - startTime,
     });
-  }
+  };
 
-  function evaluateCompleteBuild(): void {
+  const evaluate = (): void => {
     statistics.terminalBuilds++;
-
-    const orderedRunes = [...buildRunes].sort(
-      (first, second) => first.slot - second.slot
-    );
-
-    if (!passesSlotFilters(orderedRunes, config)) {
+    const ordered = [...buildRunes].sort((a, b) => a.slot - b.slot);
+    if (!passesSlotFilters(ordered, config)) {
       statistics.pruned++;
       return;
     }
-
-    const activeSets = findValidActiveSets(orderedRunes, config);
-
+    const activeSets = findValidActiveSets(ordered, config);
     if (!activeSets) {
       statistics.pruned++;
       statistics.prunedSets++;
       return;
     }
-
-    const calculation = calculateBuildStats(monster, orderedRunes, activeSets);
+    const calculation = calculateBuildStats(monster, ordered, activeSets);
     const efficiency = calculateEfficiency(calculation);
-
-    if (
-      config.stats.efficiencyMin !== undefined &&
-      efficiency < config.stats.efficiencyMin
-    ) {
+    if (belowDisplayedMinimum(efficiency, config.stats.efficiencyMin)) {
       statistics.pruned++;
       statistics.prunedMinimums++;
       return;
     }
-
-    if (
-      config.stats.efficiencyMax !== undefined &&
-      efficiency > config.stats.efficiencyMax
-    ) {
+    if (aboveDisplayedMaximum(efficiency, config.stats.efficiencyMax)) {
       statistics.pruned++;
       statistics.prunedMaximums++;
       return;
     }
-
     if (!passesStatFilters(calculation, config)) {
       statistics.pruned++;
       return;
     }
-
-    topResults.add(
-      createOptimizationResult(monster, orderedRunes, calculation)
-    );
+    topResults.add(createResult(monster, ordered, calculation));
     statistics.validBuilds++;
-  }
+  };
 
-  function explore(slotIndex: number, partialStats: PartialBuildStats): void {
-    if (updateStopState()) {
-      return;
-    }
-
+  const explore = (slotIndex: number, partial: RuneStats): void => {
+    if (mustStop()) return;
     if (slotIndex >= slotRunes.length) {
-      evaluateCompleteBuild();
+      evaluate();
       sendProgress();
       return;
     }
-
-    const currentSlot = slotRunes[slotIndex];
-    const nextSlotIndex = slotIndex + 1;
-    const remaining = remainingMaximums[nextSlotIndex];
-
-    for (const rune of currentSlot.runes) {
+    const nextIndex = slotIndex + 1;
+    for (const rune of slotRunes[slotIndex].runes) {
       statistics.branches++;
-
-      if (updateStopState()) {
-        return;
-      }
-
-      if (usedRuneIds.has(rune.id)) {
-        continue;
-      }
-
-      const nextStats = addRuneStats(partialStats, rune);
-
-      if (!canStillReachMinimums(monster, nextStats, remaining, config)) {
+      if (mustStop()) return;
+      if (usedRuneIds.has(rune.id)) continue;
+      const next = addRuneStats(partial, rune);
+      if (
+        !canStillReachMinimums(
+          monster,
+          next,
+          remainingMaximums[nextIndex],
+          config
+        )
+      ) {
         statistics.pruned++;
         statistics.prunedMinimums++;
         continue;
       }
-
-      if (!canStillRespectMaximums(monster, nextStats, config)) {
+      if (!canStillRespectMaximums(monster, next, config)) {
         statistics.pruned++;
         statistics.prunedMaximums++;
         continue;
       }
-
       buildRunes[rune.slot - 1] = rune;
       usedRuneIds.add(rune.id);
-      explore(nextSlotIndex, nextStats);
+      explore(nextIndex, next);
       usedRuneIds.delete(rune.id);
-
-      if (updateStopState()) {
-        return;
-      }
+      if (mustStop()) return;
     }
-  }
+  };
 
-  explore(0, createEmptyPartialStats());
-
+  explore(0, emptyStats());
   statistics.elapsedMs = performance.now() - startTime;
   sendProgress(true);
-
   return {
     results: topResults.toSortedArray(),
     totalBuilds: statistics.terminalBuilds,

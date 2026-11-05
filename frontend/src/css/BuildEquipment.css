@@ -1,0 +1,104 @@
+.result-row.is-equipped { background: rgba(37, 201, 245, 0.1); }
+.result-row.is-locked { background: rgba(72, 112, 174, 0.18); box-shadow: inset 3px 0 #25c9f5; }
+.results-table td:first-child { min-width: 82px; }
+.result-row-index { display: block; color: #91a6c3; font-size: 10px; }
+.result-status-badge { display: inline-flex; margin-top: 4px; padding: 2px 6px; border: 1px solid #31557d; border-radius: 999px; background: #11253f; color: #8fdfff; font-size: 9px; font-weight: 800; white-space: nowrap; }
+.result-status-badge.locked { border-color: #25c9f5; background: #12304d; color: #c4f3ff; }
+.result-status-badge.conflict { border-color: #4a5668; background: #151d29; color: #8490a1; }
+.build-row-actions { display: flex; align-items: center; justify-content: center; gap: 5px; min-width: 126px; }
+.build-action-button { display: inline-flex; align-items: center; justify-content: center; gap: 5px; min-height: 30px; padding: 5px 8px; border: 1px solid #31557d; border-radius: 6px; background: #11233b; color: #dcecff; font-size: 10px; font-weight: 800; white-space: nowrap; }
+.build-action-button.equip:hover { border-color: #25c9f5; background: #12304d; color: #bcefff; }
+.build-action-button.equipped { border-color: rgba(37, 201, 245, 0.55); background: rgba(37, 201, 245, 0.12); color: #aeeeff; }
+.build-lock-button { display: grid; width: 30px; height: 30px; padding: 0; place-items: center; border: 1px solid #31557d; border-radius: 6px; background: #102139; }
+.build-lock-button.is-locked { border-color: #25c9f5; background: #12304d; }
+.equipped-builds-bar { margin: 16px 0; padding: 10px; border: 1px solid #263f65; border-radius: 9px; background: #0d192c; }
+.equipped-builds-title { margin-bottom: 8px; color: #73d7ff; font-size: 11px; font-weight: 900; text-transform: uppercase; }
+.equipped-builds-list { display: flex; flex-wrap: wrap; gap: 7px; }
+.equipped-build-chip { display: inline-flex; align-items: center; gap: 7px; padding: 5px 9px; border: 1px solid #29466f; border-radius: 7px; background: #13233b; color: #fff; }
+.equipped-build-chip.is-locked { border-color: #25c9f5; }
+.equipped-build-chip img { width: 28px; height: 28px; border-radius: 5px; object-fit: cover; }
+.equipped-build-chip-status { color: #8fdfff; font-size: 9px; font-weight: 800; }
+.build-modal-backdrop { position: fixed; inset: 0; z-index: 120000; display: grid; place-items: center; padding: 20px; background: rgba(2, 7, 15, 0.78); backdrop-filter: blur(5px); }
+.build-modal { width: min(860px, 100%); max-height: calc(100vh - 40px); overflow: auto; padding: 16px; border: 1px solid #315884; border-radius: 12px; background: #0d192c; box-shadow: 0 24px 60px rgba(0, 0, 0, 0.55); }
+.build-modal-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+.build-modal-header h2 { margin: 0; color: #fff; }
+.build-modal-header span { color: #7da0c9; font-size: 12px; }
+.build-modal-runes { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 9px; }
+.build-modal-rune { display: grid; grid-template-columns: 42px 1fr; gap: 4px 9px; align-items: center; padding: 12px; border: 1px solid #263f65; border-radius: 8px; background: #101f35; }
+.build-modal-rune .result-rune { grid-row: span 2; transform: scale(1.2); }
+.build-modal-rune strong { color: #fff; }
+.build-modal-rune span { color: #83a4ca; font-size: 12px; }
+.build-modal-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 14px; }
+@media (max-width: 720px) { .build-modal-runes { grid-template-columns: 1fr; } }
+
+.equipped-builds-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 8px;
+}
+.equipped-builds-header .equipped-builds-title { margin-bottom: 0; }
+.equipped-builds-empty { color: #7d91ad; font-size: 11px; }
+.clear-equipped-builds-button {
+    padding: 6px 9px;
+    border: 1px solid #733747;
+    border-radius: 6px;
+    background: #2c1720;
+    color: #f3a7b3;
+    font-size: 10px;
+    font-weight: 800;
+}
+.clear-equipped-builds-button:hover {
+    border-color: #e06c7d;
+    background: #45202b;
+    color: #ffd6dc;
+}
+@media (max-width: 560px) {
+    .equipped-builds-header {
+        align-items: stretch;
+        flex-direction: column;
+    }
+}
+
+.sidebar > .equipped-builds-bar {
+    width: 100%;
+    margin: 12px 0 0;
+}
+
+.rune-conflict-shell {
+    display: inline-flex;
+    width: 32px;
+    height: 32px;
+    border-radius: 4px;
+    filter: brightness(0.42) saturate(0.55);
+    box-shadow: inset 0 0 0 1px #59677a;
+}
+.result-rune-owner {
+    position: absolute;
+    z-index: 8;
+    left: 1px;
+    bottom: 1px;
+    width: 13px;
+    height: 13px;
+    min-width: 13px;
+    max-width: 13px;
+    min-height: 13px;
+    max-height: 13px;
+    border: 1px solid #25c9f5;
+    border-radius: 2px;
+    object-fit: cover;
+    background: #15100a;
+    pointer-events: none;
+}
+.result-rune-owner.is-previous {
+    border-color: #69798d;
+    filter: grayscale(1);
+    opacity: 0.72;
+}
+.conflict-visibility-filter {
+    padding-right: 10px;
+    border-right: 1px solid #3a4962;
+    color: #8fdfff;
+    font-weight: 800;
+}

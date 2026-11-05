@@ -1,18 +1,19 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import TeamPanel from "../components/team/TeamPanel";
-import TeamMonsterCard from "../components/team/TeamMonsterCard";
-import TeamOrdersPanel from "../components/team/TeamOrdersPanel";
+import EquippedBuildsBar from "../components/EquippedBuildsBar";
 import ResultsPanel from "../components/results/ResultsPanel";
 import TeamResultsPanel from "../components/results/TeamResultsPanel";
-import { useOptimizerStore } from "../store/optimizerStore";
-import { loadSwarfarmMonsters } from "../services/swarfarmService";
+import TeamMonsterCard from "../components/team/TeamMonsterCard";
+import TeamOrdersPanel from "../components/team/TeamOrdersPanel";
+import TeamPanel from "../components/team/TeamPanel";
 import { collectSwexRunes } from "../services/runePreparation";
-import type { Monster } from "../types/Monster";
-import type { OptimizationResult } from "../types/OptimizationResult";
+import { loadSwarfarmMonsters } from "../services/swarfarmService";
 import type {
   TeamOptimizationResult,
   TeamOptimizationStatistics,
 } from "../services/teamBuildOptimizer";
+import { useOptimizerStore } from "../store/optimizerStore";
+import type { Monster } from "../types/Monster";
+import type { OptimizationResult } from "../types/OptimizationResult";
 
 interface SwarfarmMonsterData {
   name: string;
@@ -77,10 +78,7 @@ interface MonsterWorkerResult {
 }
 
 type WorkerMessage =
-  | {
-      type: "prepared";
-      preparedRuneCount: number;
-    }
+  | { type: "prepared"; preparedRuneCount: number }
   | {
       type: "progress";
       currentMonsterId: number;
@@ -92,16 +90,8 @@ type WorkerMessage =
       branches: number;
       total: number;
     }
-  | {
-      type: "monster-result";
-      monsterName: string;
-      resultCount: number;
-    }
-  | {
-      type: "monster-error";
-      monsterName: string;
-      error: string;
-    }
+  | { type: "monster-result"; monsterName: string; resultCount: number }
+  | { type: "monster-error"; monsterName: string; error: string }
   | {
       type: "team-result";
       results: TeamOptimizationResult[];
@@ -135,7 +125,6 @@ function createAvailableMonsters(
   return units.map((unit, swexIndex) => {
     const reference = swarfarmMonsters[unit.unit_master_id];
     const duplicateNumber = (occurrences.get(unit.unit_master_id) ?? 0) + 1;
-
     occurrences.set(unit.unit_master_id, duplicateNumber);
 
     const baseName = reference?.name ?? String(unit.unit_master_id);
@@ -195,7 +184,6 @@ export default function TeamOptimizerPage() {
   const store = useOptimizerStore();
   const workerRef = useRef<Worker | null>(null);
   const startedAtRef = useRef(0);
-
   const [swarfarmMonsters, setSwarfarmMonsters] = useState<
     Record<number, SwarfarmMonsterData>
   >({});
@@ -208,13 +196,10 @@ export default function TeamOptimizerPage() {
 
   useEffect(() => {
     let active = true;
-
     loadSwarfarmMonsters().then((monsters) => {
-      if (active) {
+      if (active)
         setSwarfarmMonsters(monsters as Record<number, SwarfarmMonsterData>);
-      }
     });
-
     return () => {
       active = false;
     };
@@ -222,10 +207,8 @@ export default function TeamOptimizerPage() {
 
   useEffect(() => {
     if (Object.keys(swarfarmMonsters).length === 0) return;
-
     const cached = localStorage.getItem(SWEX_CACHE_KEY);
     if (!cached) return;
-
     try {
       const data = JSON.parse(cached) as SwexData;
       store.setSwexData(data);
@@ -236,27 +219,20 @@ export default function TeamOptimizerPage() {
     }
   }, [swarfarmMonsters]);
 
-  useEffect(() => {
-    return () => {
-      workerRef.current?.terminate();
-    };
-  }, []);
+  useEffect(() => () => workerRef.current?.terminate(), []);
 
   const orderedMonsters = useMemo(() => {
     const monstersById = new Map(
       store.monsters.map((monster) => [monster.id, monster])
     );
-
     const ordered = store.playOrder
       .map((monsterId) => monstersById.get(monsterId))
       .filter((monster): monster is Monster => monster !== undefined);
-
     const orderedIds = new Set(ordered.map((monster) => monster.id));
-    const missingMonsters = store.monsters.filter(
-      (monster) => !orderedIds.has(monster.id)
-    );
-
-    return [...ordered, ...missingMonsters];
+    return [
+      ...ordered,
+      ...store.monsters.filter((monster) => !orderedIds.has(monster.id)),
+    ];
   }, [store.monsters, store.playOrder]);
 
   const importSwexData = (data: SwexData, fileName: string): void => {
@@ -273,7 +249,6 @@ export default function TeamOptimizerPage() {
     const file = event.target.files?.[0];
     event.target.value = "";
     if (!file) return;
-
     try {
       const data = JSON.parse(await file.text()) as SwexData;
       localStorage.setItem(SWEX_CACHE_KEY, JSON.stringify(data));
@@ -281,9 +256,7 @@ export default function TeamOptimizerPage() {
       setOptimizationError(null);
     } catch (error) {
       setOptimizationError(
-        `Import SWEX impossible : ${
-          error instanceof Error ? error.message : String(error)
-        }`
+        `Import SWEX impossible : ${error instanceof Error ? error.message : String(error)}`
       );
     }
   };
@@ -300,7 +273,6 @@ export default function TeamOptimizerPage() {
 
   const startOptimization = (): void => {
     if (store.optimizationProgress.running) return;
-
     if (!store.swexData || orderedMonsters.length === 0) {
       setOptimizationError(
         "Importe un fichier SWEX et sélectionne au moins un monstre."
@@ -320,7 +292,6 @@ export default function TeamOptimizerPage() {
     setOptimizationError(null);
     setWorkerStatus("Préparation des runes...");
     startedAtRef.current = performance.now();
-
     store.setOptimizationProgress({
       running: true,
       progress: 0,
@@ -338,7 +309,6 @@ export default function TeamOptimizerPage() {
       new URL("./optimizerWorker.ts", import.meta.url),
       { type: "module" }
     );
-
     workerRef.current = worker;
 
     worker.onerror = (event) => {
@@ -353,14 +323,12 @@ export default function TeamOptimizerPage() {
 
     worker.onmessage = (event: MessageEvent<WorkerMessage>) => {
       const message = event.data;
-
       if (message.type === "prepared") {
         setWorkerStatus(
           `${message.preparedRuneCount.toLocaleString()} runes préparées`
         );
         return;
       }
-
       if (message.type === "progress") {
         const elapsedMs = performance.now() - startedAtRef.current;
         const progress = calculateProgress(
@@ -368,7 +336,6 @@ export default function TeamOptimizerPage() {
           message.pruned,
           message.total
         );
-
         store.setOptimizationProgress({
           running: true,
           progress,
@@ -387,19 +354,16 @@ export default function TeamOptimizerPage() {
         setWorkerStatus(`Optimisation de ${message.currentMonsterName}`);
         return;
       }
-
       if (message.type === "monster-result") {
         setWorkerStatus(
           `${message.monsterName} terminé : ${message.resultCount.toLocaleString()} builds`
         );
         return;
       }
-
       if (message.type === "monster-error") {
         setOptimizationError(`${message.monsterName} : ${message.error}`);
         return;
       }
-
       if (message.type === "team-result") {
         store.setTeamResults(message.results);
         setWorkerStatus(
@@ -445,7 +409,6 @@ export default function TeamOptimizerPage() {
     <div className="page">
       <header className="header">
         <h1>OptmZ</h1>
-
         <div className="header-actions">
           <input
             id="swex-file-input"
@@ -454,7 +417,6 @@ export default function TeamOptimizerPage() {
             accept=".json,application/json"
             onChange={handleImportSwex}
           />
-
           <button
             type="button"
             disabled={store.optimizationProgress.running}
@@ -462,7 +424,6 @@ export default function TeamOptimizerPage() {
           >
             Import SWEX
           </button>
-
           <button
             type="button"
             disabled={!store.optimizationProgress.running}
@@ -499,7 +460,6 @@ export default function TeamOptimizerPage() {
           {importStatus.artifacts.toLocaleString()} artefacts
         </div>
       )}
-
       {optimizationError && (
         <div className="import-error compact">{optimizationError}</div>
       )}
@@ -517,9 +477,10 @@ export default function TeamOptimizerPage() {
         </div>
       </div>
 
+      <EquippedBuildsBar />
+
       <div className="team-config-section">
         <h2>Team Configuration</h2>
-
         <TeamOrdersPanel
           monsters={store.monsters}
           playOrder={store.playOrder}
@@ -532,7 +493,6 @@ export default function TeamOptimizerPage() {
           {orderedMonsters.map((monster) => {
             const config = store.configs[monster.id];
             if (!config) return null;
-
             return (
               <TeamMonsterCard
                 key={monster.id}
@@ -558,7 +518,6 @@ export default function TeamOptimizerPage() {
                 {store.optimizationProgress.monsterCount}
               </div>
             )}
-
             <div className="optimizer-value">
               {store.optimizationProgress.explored.toLocaleString()}
             </div>
@@ -575,11 +534,9 @@ export default function TeamOptimizerPage() {
               <div className="optimizer-status">{workerStatus}</div>
             )}
           </div>
-
           <div className="optimizer-circle">
             {store.optimizationProgress.progress}%
           </div>
-
           <button
             type="button"
             disabled={
@@ -597,7 +554,12 @@ export default function TeamOptimizerPage() {
       </div>
 
       <TeamResultsPanel results={store.teamResults} />
-      <ResultsPanel results={store.results} configs={store.configs} />
+      <ResultsPanel
+        results={store.results}
+        configs={store.configs}
+        monsters={store.monsters}
+        importMode={store.importMode}
+      />
     </div>
   );
 }
