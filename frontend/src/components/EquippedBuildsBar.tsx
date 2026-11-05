@@ -7,19 +7,46 @@ import {
   removeEquippedBuild,
   subscribeEquippedBuilds,
   toggleBuildLock,
+  type OptimizationMode,
 } from "../services/equippedBuildStorage";
+import {
+  getSavedMode,
+  MODE_CHANGE_EVENT,
+} from "../services/optimizerPreferencesStorage";
 
-export default function EquippedBuildsBar() {
-  const [builds, setBuilds] = useState(() => getEquippedBuilds());
+interface Props {
+  readonly mode?: OptimizationMode;
+}
+
+export default function EquippedBuildsBar({ mode: suppliedMode }: Props) {
+  const [storedMode, setStoredMode] = useState<OptimizationMode>(() =>
+    getSavedMode()
+  );
+  const mode = suppliedMode ?? storedMode;
+  const [builds, setBuilds] = useState(() => getEquippedBuilds(mode));
   const [selectedMonsterId, setSelectedMonsterId] = useState<number | null>(
     null
   );
 
   useEffect(() => {
+    if (suppliedMode) return;
+
+    const updateMode = (event: Event): void => {
+      setStoredMode((event as CustomEvent<OptimizationMode>).detail);
+    };
+
+    window.addEventListener(MODE_CHANGE_EVENT, updateMode);
+    return () => window.removeEventListener(MODE_CHANGE_EVENT, updateMode);
+  }, [suppliedMode]);
+
+  useEffect(() => {
+    setBuilds(getEquippedBuilds(mode));
+    setSelectedMonsterId(null);
+
     return subscribeEquippedBuilds(() => {
-      setBuilds(getEquippedBuilds());
+      setBuilds(getEquippedBuilds(mode));
     });
-  }, []);
+  }, [mode]);
 
   const selected =
     builds.find((item) => item.monsterId === selectedMonsterId) ?? null;
@@ -41,13 +68,15 @@ export default function EquippedBuildsBar() {
   }, [selected]);
 
   const clearBuilds = (): void => {
-    const confirmed = window.confirm(
-      "Retirer tous les builds équipés et verrouillés ? Le cache SWEX sera conservé."
-    );
+    if (
+      !window.confirm(
+        `Retirer tous les builds ${mode} équipés et verrouillés ?`
+      )
+    ) {
+      return;
+    }
 
-    if (!confirmed) return;
-
-    clearEquippedBuilds();
+    clearEquippedBuilds(mode);
     setSelectedMonsterId(null);
   };
 
@@ -56,14 +85,14 @@ export default function EquippedBuildsBar() {
     <section className="equipped-builds-bar">
       <div className="equipped-builds-header">
         <div className="equipped-builds-title">
-          Builds équipés et verrouillés
+          Builds {mode} équipés et verrouillés
         </div>
         <button
           className="clear-equipped-builds-button"
           type="button"
           onClick={clearBuilds}
         >
-          Vider les builds
+          Vider les builds {mode}
         </button>
       </div>
 
@@ -72,7 +101,7 @@ export default function EquippedBuildsBar() {
           {builds.map((item) => (
             <button
               className={`equipped-build-chip ${item.locked ? "is-locked" : ""}`}
-              key={item.monsterId}
+              key={`${item.mode}-${item.monsterId}`}
               type="button"
               onClick={() => setSelectedMonsterId(item.monsterId)}
             >
@@ -88,7 +117,7 @@ export default function EquippedBuildsBar() {
         </div>
       ) : (
         <div className="equipped-builds-empty">
-          Aucun build équipé ou verrouillé.
+          Aucun build {mode} équipé ou verrouillé.
         </div>
       )}
     </section>
@@ -102,11 +131,10 @@ export default function EquippedBuildsBar() {
         <dialog
           className="build-modal-backdrop"
           open
-          aria-label={`Build de ${selected.monsterName}`}
+          aria-label={`Build ${mode} de ${selected.monsterName}`}
           onClick={(event) => {
-            if (event.target === event.currentTarget) {
+            if (event.target === event.currentTarget)
               setSelectedMonsterId(null);
-            }
           }}
         >
           <section className="build-modal">
@@ -122,6 +150,7 @@ export default function EquippedBuildsBar() {
                 <div>
                   <h2>{selected.monsterName}</h2>
                   <span>
+                    {selected.mode} ·{" "}
                     {selected.locked ? "Build verrouillé" : "Build équipé"}
                   </span>
                 </div>
@@ -144,6 +173,7 @@ export default function EquippedBuildsBar() {
                     monsterId: selected.monsterId,
                     monsterName: selected.monsterName,
                     monsterImageUrl: selected.monsterImageUrl,
+                    mode: selected.mode,
                     active: true,
                     locked: selected.locked,
                   }}
@@ -155,7 +185,7 @@ export default function EquippedBuildsBar() {
             <footer className="build-modal-actions">
               <button
                 type="button"
-                onClick={() => toggleBuildLock(selected.monsterId)}
+                onClick={() => toggleBuildLock(selected.monsterId, mode)}
               >
                 {selected.locked ? "🔓 Déverrouiller" : "🔒 Verrouiller"}
               </button>
@@ -163,7 +193,7 @@ export default function EquippedBuildsBar() {
                 type="button"
                 disabled={selected.locked}
                 onClick={() => {
-                  removeEquippedBuild(selected.monsterId);
+                  removeEquippedBuild(selected.monsterId, mode);
                   setSelectedMonsterId(null);
                 }}
               >

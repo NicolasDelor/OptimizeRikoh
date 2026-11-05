@@ -1,7 +1,4 @@
 import { useEffect, useMemo, useState } from "react";
-import type { OptimizationResult } from "../../types/OptimizationResult";
-import type { VisibleResultColumns } from "./ResultsPanel";
-import RuneVisual from "./RuneVisual";
 import {
   equipBuild,
   getBuildConflicts,
@@ -12,14 +9,17 @@ import {
   subscribeEquippedBuilds,
   toggleBuildLock,
 } from "../../services/equippedBuildStorage";
+import type { OptimizationResult } from "../../types/OptimizationResult";
+import type { VisibleResultColumns } from "./ResultsPanel";
+import RuneVisual from "./RuneVisual";
 
 interface Props {
-  results: OptimizationResult[];
-  visibleColumns: VisibleResultColumns;
-  monsterName: string;
-  monsterImageUrl?: string;
-  importMode?: "NORMAL" | "RTA" | "SIEGE";
-  showConflictingBuilds: boolean;
+  readonly results: readonly OptimizationResult[];
+  readonly visibleColumns: Readonly<VisibleResultColumns>;
+  readonly monsterName: string;
+  readonly monsterImageUrl?: string;
+  readonly importMode: "NORMAL" | "RTA" | "SIEGE";
+  readonly showConflictingBuilds: boolean;
 }
 
 type SortableColumn =
@@ -35,12 +35,11 @@ type SortableColumn =
   | "efficiency"
   | "damage"
   | "score";
-
 type SortDirection = "asc" | "desc";
 
 const PAGE_SIZE = 25;
 
-function formatDecimal(value: number): string {
+function format(value: number): string {
   return Number.isFinite(value)
     ? Math.ceil(value).toLocaleString("fr-FR")
     : "0";
@@ -51,21 +50,22 @@ export default function MonsterResultsTable({
   visibleColumns,
   monsterName,
   monsterImageUrl,
-  importMode = "NORMAL",
+  importMode,
   showConflictingBuilds,
 }: Props) {
   const [sortColumn, setSortColumn] = useState<SortableColumn>("spd");
   const [sortDirection, setSortDirection] = useState<SortDirection>("desc");
   const [currentPage, setCurrentPage] = useState(1);
   const [equippedBuilds, setEquippedBuilds] = useState(() =>
-    getEquippedBuilds()
+    getEquippedBuilds(importMode)
   );
 
   useEffect(() => {
-    return subscribeEquippedBuilds(() => {
-      setEquippedBuilds(getEquippedBuilds());
-    });
-  }, []);
+    setEquippedBuilds(getEquippedBuilds(importMode));
+    return subscribeEquippedBuilds(() =>
+      setEquippedBuilds(getEquippedBuilds(importMode))
+    );
+  }, [importMode]);
 
   const sortedResults = useMemo(() => {
     const equippedForMonster = equippedBuilds.find(
@@ -73,32 +73,29 @@ export default function MonsterResultsTable({
         item.monsterId === results[0]?.monsterId ||
         item.monsterName === monsterName
     );
-    const sourceResults =
+    const source =
       equippedForMonster &&
       !results.some((result) => isSameBuild(equippedForMonster, result))
         ? [equippedForMonster.build, ...results]
         : [...results];
 
-    return sourceResults
+    return source
       .filter(
         (result) =>
           showConflictingBuilds ||
-          getBuildConflicts(result, result.monsterId, monsterName).length ===
-            0 ||
-          isSameBuild(
-            equippedBuilds.find((item) => item.monsterId === result.monsterId),
-            result
-          )
+          getBuildConflicts(result, result.monsterId, monsterName, importMode)
+            .length === 0 ||
+          isSameBuild(equippedForMonster, result)
       )
       .sort((first, second) => {
         const difference =
           sortDirection === "asc"
             ? first[sortColumn] - second[sortColumn]
             : second[sortColumn] - first[sortColumn];
-
-        if (difference !== 0) return difference;
-
-        return first.runeIds.join("-").localeCompare(second.runeIds.join("-"));
+        return (
+          difference ||
+          first.runeIds.join("-").localeCompare(second.runeIds.join("-"))
+        );
       });
   }, [
     results,
@@ -107,6 +104,7 @@ export default function MonsterResultsTable({
     showConflictingBuilds,
     equippedBuilds,
     monsterName,
+    importMode,
   ]);
 
   const totalPages = Math.max(1, Math.ceil(sortedResults.length / PAGE_SIZE));
@@ -116,24 +114,22 @@ export default function MonsterResultsTable({
     page * PAGE_SIZE
   );
 
-  const handleSort = (column: SortableColumn): void => {
+  const sort = (column: SortableColumn): void => {
     setCurrentPage(1);
-
     if (sortColumn === column) {
       setSortDirection((value) => (value === "asc" ? "desc" : "asc"));
-      return;
+    } else {
+      setSortColumn(column);
+      setSortDirection("desc");
     }
-
-    setSortColumn(column);
-    setSortDirection("desc");
   };
 
-  const renderHeader = (column: SortableColumn, label: string) => (
+  const header = (column: SortableColumn, label: string) => (
     <th>
       <button
         type="button"
         className="results-sort-button"
-        onClick={() => handleSort(column)}
+        onClick={() => sort(column)}
       >
         {label}
         {sortColumn === column ? (sortDirection === "asc" ? " ▲" : " ▼") : ""}
@@ -154,21 +150,20 @@ export default function MonsterResultsTable({
             <th>Action</th>
             {visibleColumns.runes && <th>RUNES</th>}
             {visibleColumns.sets && <th>SETS</th>}
-            {visibleColumns.hp && renderHeader("hp", "HP")}
-            {visibleColumns.atk && renderHeader("atk", "ATK")}
-            {visibleColumns.def && renderHeader("def", "DEF")}
-            {visibleColumns.spd && renderHeader("spd", "SPD")}
-            {visibleColumns.cr && renderHeader("cr", "CR")}
-            {visibleColumns.cd && renderHeader("cd", "DCC")}
-            {visibleColumns.acc && renderHeader("acc", "ACC")}
-            {visibleColumns.res && renderHeader("res", "RES")}
-            {visibleColumns.ehp && renderHeader("ehp", "EHP")}
-            {visibleColumns.efficiency && renderHeader("efficiency", "EFF")}
-            {visibleColumns.damage && renderHeader("damage", "DMG")}
+            {visibleColumns.hp && header("hp", "HP")}
+            {visibleColumns.atk && header("atk", "ATK")}
+            {visibleColumns.def && header("def", "DEF")}
+            {visibleColumns.spd && header("spd", "SPD")}
+            {visibleColumns.cr && header("cr", "CR")}
+            {visibleColumns.cd && header("cd", "DCC")}
+            {visibleColumns.acc && header("acc", "ACC")}
+            {visibleColumns.res && header("res", "RES")}
+            {visibleColumns.ehp && header("ehp", "EHP")}
+            {visibleColumns.efficiency && header("efficiency", "EFF")}
+            {visibleColumns.damage && header("damage", "DMG")}
             {visibleColumns.slots && <th>2/4/6</th>}
           </tr>
         </thead>
-
         <tbody>
           {pagedResults.map((result, index) => {
             const equipped = equippedBuilds.find(
@@ -180,14 +175,13 @@ export default function MonsterResultsTable({
             const conflicts = getBuildConflicts(
               result,
               result.monsterId,
-              monsterName
+              monsterName,
+              importMode
             );
-            const lockedConflict = conflicts.some((item) => item.locked);
-            const rowClassName = selected
-              ? equipped?.locked
-                ? "result-row is-locked"
-                : "result-row is-equipped"
-              : "result-row";
+            let rowClassName = "result-row";
+            if (selected && equipped?.locked)
+              rowClassName = "result-row is-locked";
+            else if (selected) rowClassName = "result-row is-equipped";
 
             return (
               <tr
@@ -198,24 +192,19 @@ export default function MonsterResultsTable({
                   <span className="result-row-index">
                     {(page - 1) * PAGE_SIZE + index + 1}
                   </span>
-
                   {selected && (
                     <span
-                      className={`result-status-badge ${
-                        equipped?.locked ? "locked" : "equipped"
-                      }`}
+                      className={`result-status-badge ${equipped?.locked ? "locked" : "equipped"}`}
                     >
                       {equipped?.locked ? "🔒 Verrouillé" : "🛡✓ Équipé"}
                     </span>
                   )}
-
                   {!selected && conflicts.length > 0 && (
                     <span className="result-status-badge conflict">
-                      {lockedConflict ? "🔒 Conflit" : "🛡 Conflit"}
+                      Conflit {importMode}
                     </span>
                   )}
                 </td>
-
                 <td>
                   <div className="build-row-actions">
                     {!selected ? (
@@ -223,11 +212,6 @@ export default function MonsterResultsTable({
                         type="button"
                         className="build-action-button equip"
                         disabled={conflicts.length > 0}
-                        title={
-                          conflicts.length > 0
-                            ? `${conflicts.length} build(s) en conflit`
-                            : "Équiper ce build"
-                        }
                         onClick={() =>
                           equipBuild({
                             monsterId: result.monsterId,
@@ -240,8 +224,7 @@ export default function MonsterResultsTable({
                           })
                         }
                       >
-                        <span aria-hidden="true">🛡＋</span>
-                        <span>Équiper</span>
+                        🛡＋ Équiper
                       </button>
                     ) : (
                       <>
@@ -249,44 +232,17 @@ export default function MonsterResultsTable({
                           type="button"
                           className="build-action-button equipped"
                           disabled={equipped?.locked}
-                          title={
-                            equipped?.locked
-                              ? "Déverrouille le build avant de le déséquiper"
-                              : "Déséquiper ce build"
-                          }
                           onClick={() =>
-                            removeEquippedBuild(
-                              equipped?.monsterId ?? result.monsterId
-                            )
+                            removeEquippedBuild(result.monsterId, importMode)
                           }
                         >
-                          <span aria-hidden="true">
-                            {equipped?.locked ? "🛡✓" : "🛡−"}
-                          </span>
-                          <span>
-                            {equipped?.locked ? "Équipé" : "Déséquiper"}
-                          </span>
+                          🛡− Déséquiper
                         </button>
-
                         <button
                           type="button"
-                          className={`build-lock-button ${
-                            equipped?.locked ? "is-locked" : ""
-                          }`}
-                          title={
-                            equipped?.locked
-                              ? "Déverrouiller le build"
-                              : "Verrouiller le build"
-                          }
-                          aria-label={
-                            equipped?.locked
-                              ? "Déverrouiller le build"
-                              : "Verrouiller le build"
-                          }
+                          className={`build-lock-button ${equipped?.locked ? "is-locked" : ""}`}
                           onClick={() =>
-                            toggleBuildLock(
-                              equipped?.monsterId ?? result.monsterId
-                            )
+                            toggleBuildLock(result.monsterId, importMode)
                           }
                         >
                           {equipped?.locked ? "🔒" : "🔓"}
@@ -295,18 +251,14 @@ export default function MonsterResultsTable({
                     )}
                   </div>
                 </td>
-
                 {visibleColumns.runes && (
                   <td>
                     <div className="result-runes">
                       {result.runes.map((rune) => {
-                        const storedOwner = getRuneOwnerState(rune.id);
-                        const conflictOwner = conflicts.find((build) =>
+                        const owner = getRuneOwnerState(rune.id, importMode);
+                        const conflict = conflicts.some((build) =>
                           build.build.runeIds.includes(rune.id)
                         );
-                        const conflict = conflictOwner !== undefined;
-                        const owner = storedOwner?.active ? storedOwner : null;
-
                         return (
                           <span
                             className={
@@ -315,13 +267,14 @@ export default function MonsterResultsTable({
                             key={rune.id}
                             title={
                               conflict && owner
-                                ? `Rune utilisée par ${owner.monsterName}`
-                                : owner && !owner.active
-                                  ? `Dernier porteur : ${owner.monsterName}`
-                                  : undefined
+                                ? `Rune utilisée par ${owner.monsterName} en ${importMode}`
+                                : undefined
                             }
                           >
-                            <RuneVisual rune={rune} owner={owner} />
+                            <RuneVisual
+                              rune={rune}
+                              owner={owner?.active ? owner : null}
+                            />
                           </span>
                         );
                       })}
@@ -329,23 +282,21 @@ export default function MonsterResultsTable({
                   </td>
                 )}
                 {visibleColumns.sets && <td>{result.sets.join(", ")}</td>}
-                {visibleColumns.hp && <td>{formatDecimal(result.hp)}</td>}
-                {visibleColumns.atk && <td>{formatDecimal(result.atk)}</td>}
-                {visibleColumns.def && <td>{formatDecimal(result.def)}</td>}
+                {visibleColumns.hp && <td>{format(result.hp)}</td>}
+                {visibleColumns.atk && <td>{format(result.atk)}</td>}
+                {visibleColumns.def && <td>{format(result.def)}</td>}
                 {visibleColumns.spd && (
-                  <td className="spd-cell">{formatDecimal(result.spd)}</td>
+                  <td className="spd-cell">{format(result.spd)}</td>
                 )}
-                {visibleColumns.cr && <td>{formatDecimal(result.cr)}</td>}
-                {visibleColumns.cd && <td>{formatDecimal(result.cd)}</td>}
-                {visibleColumns.acc && <td>{formatDecimal(result.acc)}</td>}
-                {visibleColumns.res && <td>{formatDecimal(result.res)}</td>}
-                {visibleColumns.ehp && <td>{formatDecimal(result.ehp)}</td>}
+                {visibleColumns.cr && <td>{format(result.cr)}</td>}
+                {visibleColumns.cd && <td>{format(result.cd)}</td>}
+                {visibleColumns.acc && <td>{format(result.acc)}</td>}
+                {visibleColumns.res && <td>{format(result.res)}</td>}
+                {visibleColumns.ehp && <td>{format(result.ehp)}</td>}
                 {visibleColumns.efficiency && (
-                  <td>{formatDecimal(result.efficiency)}</td>
+                  <td>{format(result.efficiency)}</td>
                 )}
-                {visibleColumns.damage && (
-                  <td>{formatDecimal(result.damage)}</td>
-                )}
+                {visibleColumns.damage && <td>{format(result.damage)}</td>}
                 {visibleColumns.slots && (
                   <td>
                     {result.slot2}, {result.slot4}, {result.slot6}

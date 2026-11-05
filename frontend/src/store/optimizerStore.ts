@@ -1,13 +1,20 @@
 import { useState } from "react";
+import { mainStatNames } from "../data/runeData";
+import {
+  getSavedMode,
+  loadMonsterConfig,
+  saveMode,
+  saveMonsterConfig,
+  type OptimizationMode,
+} from "../services/optimizerPreferencesStorage";
+import { getActiveSets } from "../services/statCalculator";
+import type { TeamOptimizationResult } from "../services/teamBuildOptimizer";
 import type { Monster } from "../types/Monster";
 import type { MonsterConfig, OptimizableStat } from "../types/MonsterConfig";
 import type { OptimizationResult } from "../types/OptimizationResult";
 import type { SwexRune } from "../types/Rune";
-import type { TeamOptimizationResult } from "../services/teamBuildOptimizer";
-import { getActiveSets } from "../services/statCalculator";
-import { mainStatNames } from "../data/runeData";
 
-interface OptimizerMonsterResult {
+export interface OptimizerMonsterResult {
   monsterId: number;
   monsterName: string;
   results: OptimizationResult[];
@@ -45,24 +52,7 @@ interface OptimizationProgressState {
   monsterCount: number;
 }
 
-interface ImportedMonsterData {
-  unitId: number;
-  swexIndex?: number;
-  duplicateNumber?: number;
-  name: string;
-  imageUrl?: string;
-  baseHp: number;
-  baseAtk: number;
-  baseDef: number;
-  baseSpd: number;
-  hp: number;
-  atk: number;
-  def: number;
-  spd: number;
-  cr: number;
-  cd: number;
-  acc: number;
-  res: number;
+interface ImportedMonsterData extends Omit<Monster, "id" | "runes"> {
   runes?: SwexRune[];
 }
 
@@ -71,6 +61,21 @@ const DEFAULT_SEARCH_DEPTH = 5000;
 const DEFAULT_RESULT_LIMIT = 1000;
 const DEFAULT_MAX_BRANCHES = 5_000_000;
 const DEFAULT_MAX_DURATION_MS = 30_000;
+
+function emptyProgress(): OptimizationProgressState {
+  return {
+    running: false,
+    progress: 0,
+    explored: 0,
+    pruned: 0,
+    branches: 0,
+    total: 0,
+    elapsedMs: 0,
+    estimatedRemainingMs: 0,
+    monsterIndex: 0,
+    monsterCount: 0,
+  };
+}
 
 function createMonsterId(): number {
   return Date.now() * 1_000_000 + Math.floor(Math.random() * 1_000_000);
@@ -81,14 +86,24 @@ function getRuneMainStat(runes: readonly SwexRune[], slot: number): string {
   return mainStatNames[Number(rune?.pri_eff?.[0] ?? 0)] ?? "";
 }
 
-function createMonsterConfig(
+function asSwexRunes(runes: readonly unknown[]): SwexRune[] {
+  return runes.filter(
+    (rune): rune is SwexRune =>
+      typeof rune === "object" &&
+      rune !== null &&
+      "rune_id" in rune &&
+      "slot_no" in rune
+  );
+}
+
+function createDefaultConfig(
   monsterId: number,
   runes: SwexRune[]
 ): MonsterConfig {
   const activeSets = getActiveSets(runes);
-  const slot2MainStat = getRuneMainStat(runes, 2);
-  const slot4MainStat = getRuneMainStat(runes, 4);
-  const slot6MainStat = getRuneMainStat(runes, 6);
+  const slot2 = getRuneMainStat(runes, 2);
+  const slot4 = getRuneMainStat(runes, 4);
+  const slot6 = getRuneMainStat(runes, 6);
 
   return {
     monsterId,
@@ -97,9 +112,9 @@ function createMonsterConfig(
     requiredSet2: activeSets[1] ? [activeSets[1]] : [],
     requiredSet3: activeSets[2] ? [activeSets[2]] : [],
     forbiddenSets: [],
-    slot2MainStats: slot2MainStat ? [slot2MainStat] : [],
-    slot4MainStats: slot4MainStat ? [slot4MainStat] : [],
-    slot6MainStats: slot6MainStat ? [slot6MainStat] : [],
+    slot2MainStats: slot2 ? [slot2] : [],
+    slot4MainStats: slot4 ? [slot4] : [],
+    slot6MainStats: slot6 ? [slot6] : [],
     focus: [...DEFAULT_FOCUS],
     searchDepth: DEFAULT_SEARCH_DEPTH,
     resultLimit: DEFAULT_RESULT_LIMIT,
@@ -108,31 +123,28 @@ function createMonsterConfig(
   };
 }
 
-function normalizeMonsterConfig(
-  existingConfig: MonsterConfig,
-  configUpdate: Partial<MonsterConfig>
+function normalizeConfig(
+  existing: MonsterConfig,
+  update: Partial<MonsterConfig>
 ): MonsterConfig {
   return {
-    ...existingConfig,
-    ...configUpdate,
-    stats: configUpdate.stats
-      ? { ...existingConfig.stats, ...configUpdate.stats }
-      : existingConfig.stats,
-    requiredSet1: configUpdate.requiredSet1 ?? existingConfig.requiredSet1,
-    requiredSet2: configUpdate.requiredSet2 ?? existingConfig.requiredSet2,
-    requiredSet3: configUpdate.requiredSet3 ?? existingConfig.requiredSet3,
-    forbiddenSets: configUpdate.forbiddenSets ?? existingConfig.forbiddenSets,
-    slot2MainStats:
-      configUpdate.slot2MainStats ?? existingConfig.slot2MainStats,
-    slot4MainStats:
-      configUpdate.slot4MainStats ?? existingConfig.slot4MainStats,
-    slot6MainStats:
-      configUpdate.slot6MainStats ?? existingConfig.slot6MainStats,
-    focus: configUpdate.focus ?? existingConfig.focus,
-    searchDepth: configUpdate.searchDepth ?? existingConfig.searchDepth,
-    resultLimit: configUpdate.resultLimit ?? existingConfig.resultLimit,
-    maxBranches: configUpdate.maxBranches ?? existingConfig.maxBranches,
-    maxDurationMs: configUpdate.maxDurationMs ?? existingConfig.maxDurationMs,
+    ...existing,
+    ...update,
+    stats: update.stats
+      ? { ...existing.stats, ...update.stats }
+      : existing.stats,
+    requiredSet1: update.requiredSet1 ?? existing.requiredSet1,
+    requiredSet2: update.requiredSet2 ?? existing.requiredSet2,
+    requiredSet3: update.requiredSet3 ?? existing.requiredSet3,
+    forbiddenSets: update.forbiddenSets ?? existing.forbiddenSets,
+    slot2MainStats: update.slot2MainStats ?? existing.slot2MainStats,
+    slot4MainStats: update.slot4MainStats ?? existing.slot4MainStats,
+    slot6MainStats: update.slot6MainStats ?? existing.slot6MainStats,
+    focus: update.focus ?? existing.focus,
+    searchDepth: update.searchDepth ?? existing.searchDepth,
+    resultLimit: update.resultLimit ?? existing.resultLimit,
+    maxBranches: update.maxBranches ?? existing.maxBranches,
+    maxDurationMs: update.maxDurationMs ?? existing.maxDurationMs,
   };
 }
 
@@ -148,162 +160,131 @@ export function useOptimizerStore() {
   const [results, setResults] = useState<OptimizerMonsterResult[]>([]);
   const [teamResults, setTeamResults] = useState<TeamOptimizationResult[]>([]);
   const [optimizationProgress, setOptimizationProgress] =
-    useState<OptimizationProgressState>({
-      running: false,
-      progress: 0,
-      explored: 0,
-      pruned: 0,
-      branches: 0,
-      total: 0,
-      elapsedMs: 0,
-      estimatedRemainingMs: 0,
-      monsterIndex: 0,
-      monsterCount: 0,
-    });
-  const [importMode, setImportMode] = useState<"NORMAL" | "RTA" | "SIEGE">(
-    "NORMAL"
+    useState(emptyProgress());
+  const [importMode, setImportModeState] = useState<OptimizationMode>(() =>
+    getSavedMode()
   );
 
-  const addMonster = (serializedMonster: string): void => {
-    let importedMonster: ImportedMonsterData;
+  const setImportMode = (mode: OptimizationMode): void => {
+    saveMode(mode);
+    setImportModeState(mode);
+    setConfigs((previous) => {
+      const next = { ...previous };
 
+      for (const monster of monsters) {
+        const monsterRunes = asSwexRunes(monster.runes);
+        next[monster.id] =
+          loadMonsterConfig(monster.unitId, monster.id, mode) ??
+          createDefaultConfig(monster.id, monsterRunes);
+      }
+
+      return next;
+    });
+    setResults([]);
+    setTeamResults([]);
+  };
+
+  const addMonster = (serializedMonster: string): void => {
+    let imported: ImportedMonsterData;
     try {
-      importedMonster = JSON.parse(serializedMonster) as ImportedMonsterData;
+      imported = JSON.parse(serializedMonster) as ImportedMonsterData;
     } catch {
       return;
     }
 
     if (
-      typeof importedMonster.unitId !== "number" ||
-      typeof importedMonster.name !== "string" ||
-      monsters.some((monster) => monster.unitId === importedMonster.unitId)
+      typeof imported.unitId !== "number" ||
+      typeof imported.name !== "string" ||
+      monsters.some((monster) => monster.unitId === imported.unitId)
     ) {
       return;
     }
 
     const id = createMonsterId();
-    const runes = Array.isArray(importedMonster.runes)
-      ? importedMonster.runes
+    const runes = Array.isArray(imported.runes)
+      ? asSwexRunes(imported.runes)
       : [];
+    const monster: Monster = { ...imported, id, runes };
+    const config =
+      loadMonsterConfig(imported.unitId, id, importMode) ??
+      createDefaultConfig(id, runes);
 
-    const monster: Monster = {
-      id,
-      unitId: importedMonster.unitId,
-      swexIndex: importedMonster.swexIndex,
-      duplicateNumber: importedMonster.duplicateNumber,
-      name: importedMonster.name,
-      imageUrl: importedMonster.imageUrl,
-      runes,
-      baseHp: Number(importedMonster.baseHp ?? importedMonster.hp ?? 0),
-      baseAtk: Number(importedMonster.baseAtk ?? importedMonster.atk ?? 0),
-      baseDef: Number(importedMonster.baseDef ?? importedMonster.def ?? 0),
-      baseSpd: Number(importedMonster.baseSpd ?? importedMonster.spd ?? 0),
-      hp: Number(importedMonster.hp ?? 0),
-      atk: Number(importedMonster.atk ?? 0),
-      def: Number(importedMonster.def ?? 0),
-      spd: Number(importedMonster.spd ?? 0),
-      cr: Number(importedMonster.cr ?? 0),
-      cd: Number(importedMonster.cd ?? 0),
-      acc: Number(importedMonster.acc ?? 0),
-      res: Number(importedMonster.res ?? 0),
-    };
-
-    const config = createMonsterConfig(id, runes);
-
-    setMonsters((previousMonsters) => [...previousMonsters, monster]);
-    setConfigs((previousConfigs) => ({
-      ...previousConfigs,
-      [id]: config,
-    }));
-    setPlayOrder((previousOrder) => [...previousOrder, id]);
-    setRunePriorityOrder((previousOrder) => [...previousOrder, id]);
+    setMonsters((previous) => [...previous, monster]);
+    setConfigs((previous) => ({ ...previous, [id]: config }));
+    setPlayOrder((previous) => [...previous, id]);
+    setRunePriorityOrder((previous) => [...previous, id]);
     setResults([]);
     setTeamResults([]);
     setSelectedMonsterId(id);
   };
 
   const removeMonster = (id: number): void => {
-    setMonsters((previousMonsters) =>
-      previousMonsters.filter((monster) => monster.id !== id)
-    );
-    setConfigs((previousConfigs) => {
-      const nextConfigs = { ...previousConfigs };
-      delete nextConfigs[id];
-      return nextConfigs;
+    setMonsters((previous) => previous.filter((monster) => monster.id !== id));
+    setConfigs((previous) => {
+      const next = { ...previous };
+      delete next[id];
+      return next;
     });
-    setResults((previousResults) =>
-      previousResults.filter((result) => result.monsterId !== id)
+    setResults((previous) =>
+      previous.filter((result) => result.monsterId !== id)
     );
-    setPlayOrder((previousOrder) =>
-      previousOrder.filter((monsterId) => monsterId !== id)
+    setPlayOrder((previous) =>
+      previous.filter((monsterId) => monsterId !== id)
     );
-    setRunePriorityOrder((previousOrder) =>
-      previousOrder.filter((monsterId) => monsterId !== id)
+    setRunePriorityOrder((previous) =>
+      previous.filter((monsterId) => monsterId !== id)
     );
     setTeamResults([]);
-    setSelectedMonsterId((currentId) => (currentId === id ? null : currentId));
+    setSelectedMonsterId((current) => (current === id ? null : current));
   };
 
   const updateConfig = (
     monsterId: number,
-    configUpdate: Partial<MonsterConfig>
+    update: Partial<MonsterConfig>
   ): void => {
-    setConfigs((previousConfigs) => {
-      const existingConfig = previousConfigs[monsterId];
+    setConfigs((previous) => {
+      const existing = previous[monsterId];
+      const monster = monsters.find((item) => item.id === monsterId);
+      if (!existing || !monster) return previous;
 
-      if (!existingConfig) {
-        return previousConfigs;
-      }
-
-      return {
-        ...previousConfigs,
-        [monsterId]: normalizeMonsterConfig(existingConfig, configUpdate),
-      };
+      const nextConfig = normalizeConfig(existing, update);
+      saveMonsterConfig(monster.unitId, importMode, nextConfig);
+      return { ...previous, [monsterId]: nextConfig };
     });
     setResults([]);
     setTeamResults([]);
   };
 
-  const reorderMonsterIds = (
+  const reorder = (
     order: readonly number[],
-    sourceIndex: number,
-    destinationIndex: number
-  ): number[] => {
+    source: number,
+    destination: number
+  ) => {
     if (
-      sourceIndex < 0 ||
-      destinationIndex < 0 ||
-      sourceIndex >= order.length ||
-      destinationIndex >= order.length ||
-      sourceIndex === destinationIndex
-    ) {
+      source < 0 ||
+      destination < 0 ||
+      source >= order.length ||
+      destination >= order.length ||
+      source === destination
+    )
       return [...order];
-    }
-
-    const nextOrder = [...order];
-    const [movedMonsterId] = nextOrder.splice(sourceIndex, 1);
-    nextOrder.splice(destinationIndex, 0, movedMonsterId);
-
-    return nextOrder;
+    const next = [...order];
+    const [moved] = next.splice(source, 1);
+    next.splice(destination, 0, moved);
+    return next;
   };
 
-  const movePlayOrderMonster = (
-    sourceIndex: number,
-    destinationIndex: number
-  ): void => {
-    setPlayOrder((previousOrder) =>
-      reorderMonsterIds(previousOrder, sourceIndex, destinationIndex)
-    );
+  const movePlayOrderMonster = (source: number, destination: number): void => {
+    setPlayOrder((previous) => reorder(previous, source, destination));
     setResults([]);
     setTeamResults([]);
   };
 
   const moveRunePriorityMonster = (
-    sourceIndex: number,
-    destinationIndex: number
+    source: number,
+    destination: number
   ): void => {
-    setRunePriorityOrder((previousOrder) =>
-      reorderMonsterIds(previousOrder, sourceIndex, destinationIndex)
-    );
+    setRunePriorityOrder((previous) => reorder(previous, source, destination));
     setResults([]);
     setTeamResults([]);
   };
@@ -316,18 +297,7 @@ export function useOptimizerStore() {
     setResults([]);
     setTeamResults([]);
     setSelectedMonsterId(null);
-    setOptimizationProgress({
-      running: false,
-      progress: 0,
-      explored: 0,
-      pruned: 0,
-      branches: 0,
-      total: 0,
-      elapsedMs: 0,
-      estimatedRemainingMs: 0,
-      monsterIndex: 0,
-      monsterCount: 0,
-    });
+    setOptimizationProgress(emptyProgress());
   };
 
   return {
